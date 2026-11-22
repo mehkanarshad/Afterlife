@@ -1,48 +1,38 @@
-export interface PageContent {
+import * as cheerio from "cheerio";
+
+const MIN_PARAGRAPH_LENGTH = 20;
+
+function clean(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+export function extractContent(html: string): {
   title: string;
-  description: string;
-  bodyText: string;
-  links: string[];
-}
+  headings: string[];
+  paragraphs: string[];
+  images: string[];
+} {
+  const $ = cheerio.load(html);
 
-/**
- * Parses raw HTML from an archived snapshot and extracts readable content.
- */
-export function extractContent(html: string): PageContent {
-  // Title
-  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const title = titleMatch ? decodeEntities(titleMatch[1].trim()) : "";
+  // Drop non-readable content so it never leaks into extracted text.
+  $("script, style, noscript").remove();
 
-  // Meta description
-  const descMatch = html.match(
-    /<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i
-  );
-  const description = descMatch ? decodeEntities(descMatch[1]) : "";
+  const title = clean($("title").first().text()) || clean($("h1").first().text());
 
-  // Strip scripts, styles, and tags to get body text
-  const bodyText = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const headings = $("h1, h2, h3")
+    .map((_, el) => clean($(el).text()))
+    .get()
+    .filter((text) => text.length > 0);
 
-  // Collect href links
-  const linkRegex = /href=["']([^"']+)["']/gi;
-  const links: string[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = linkRegex.exec(html)) !== null) {
-    links.push(match[1]);
-  }
+  const paragraphs = $("p")
+    .map((_, el) => clean($(el).text()))
+    .get()
+    .filter((text) => text.length > MIN_PARAGRAPH_LENGTH);
 
-  return { title, description, bodyText, links };
-}
+  const images = $("img")
+    .map((_, el) => ($(el).attr("src") ?? "").trim())
+    .get()
+    .filter((src) => src.startsWith("http"));
 
-function decodeEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+  return { title, headings, paragraphs, images };
 }
