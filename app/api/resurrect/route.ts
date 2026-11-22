@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       originalUrl: url,
       snapshotTimestamp: snapshot.timestamp,
+      snapshotUrl: snapshot.snapshotUrl,
       extracted: { title, headings, paragraphs, images },
     });
   } catch (err) {
