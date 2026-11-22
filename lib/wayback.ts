@@ -1,32 +1,38 @@
 const WAYBACK_API = "https://archive.org/wayback/available";
 
-export interface WaybackSnapshot {
-  url: string;
-  timestamp: string;
-  status: string;
+interface WaybackAvailableResponse {
+  archived_snapshots?: {
+    closest?: {
+      available: boolean;
+      url: string;
+      timestamp: string;
+      status: string;
+    };
+  };
 }
 
-/**
- * Fetches the closest available Wayback Machine snapshot for a given URL.
- */
-export async function fetchSnapshot(url: string): Promise<WaybackSnapshot | null> {
-  const endpoint = `${WAYBACK_API}?url=${encodeURIComponent(url)}`;
-  const res = await fetch(endpoint);
+export async function getSnapshot(
+  url: string
+): Promise<{ snapshotUrl: string; timestamp: string } | null> {
+  try {
+    const endpoint = `${WAYBACK_API}?url=${encodeURIComponent(url)}`;
+    const res = await fetch(endpoint);
 
-  if (!res.ok) {
-    throw new Error(`Wayback API responded with status ${res.status}`);
-  }
+    if (!res.ok) {
+      return null;
+    }
 
-  const data = await res.json();
-  const closest = data?.archived_snapshots?.closest;
+    const data = (await res.json()) as WaybackAvailableResponse;
+    const closest = data?.archived_snapshots?.closest;
 
-  if (!closest || closest.available !== true) {
+    if (!closest || !closest.available) {
+      return null;
+    }
+
+    const snapshotUrl = closest.url.replace(/^http:\/\//, "https://");
+
+    return { snapshotUrl, timestamp: closest.timestamp };
+  } catch {
     return null;
   }
-
-  return {
-    url: closest.url as string,
-    timestamp: closest.timestamp as string,
-    status: closest.status as string,
-  };
 }
