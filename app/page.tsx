@@ -95,11 +95,19 @@ export default function Home() {
             <h2 className="mb-2 text-xs uppercase tracking-widest text-neutral-400">
               Ghost
             </h2>
-            <iframe
-              src={result.snapshotUrl}
-              title="Original snapshot"
-              className="h-[75vh] w-full rounded-md border border-neutral-800 bg-white"
-            />
+            <div className="rounded-md border border-neutral-800 bg-neutral-900 p-6 text-sm">
+              <a
+                href={result.snapshotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-sky-400 underline underline-offset-4 hover:text-sky-300"
+              >
+                View original snapshot
+              </a>
+              <p className="mt-3 break-all text-xs text-neutral-500">
+                {result.snapshotUrl}
+              </p>
+            </div>
           </section>
 
           <section className="flex flex-col font-sans">
