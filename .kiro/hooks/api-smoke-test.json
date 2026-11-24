@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "API smoke test",
+      "trigger": "PostFileSave",
+      "description": "Calls POST /api/resurrect with the three example URLs and logs PASS/FAIL for each. Runs when the API route or a lib/ file is saved. Requires the dev server on localhost:3000.",
+      "matcher": "(^|/)(lib|app/api)/.*\\.tsx?$",
+      "action": {
+        "type": "command",
+        "command": "npx tsx scripts/smoke-test.ts",
+        "timeout": 60
+      }
+    }
+  ]
+}
