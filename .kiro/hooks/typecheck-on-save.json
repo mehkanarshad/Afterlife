@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Type check on save",
+      "trigger": "PostFileSave",
+      "description": "Runs the TypeScript type check when a file in lib/ or app/api/ is saved.",
+      "matcher": "(^|/)(lib|app/api)/.*\\.tsx?$",
+      "action": {
+        "type": "command",
+        "command": "npx tsc --noEmit -p .",
+        "timeout": 120
+      }
+    }
+  ]
+}
