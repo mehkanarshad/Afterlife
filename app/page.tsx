@@ -14,13 +14,85 @@ interface ResurrectResult {
   };
 }
 
+type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
+
+const ERROR_MESSAGES: Record<ErrorKind, string> = {
+  not_found:
+    "No archive exists for this URL. It may never have been crawled, or the URL is misspelled.",
+  timeout: "Wayback Machine took too long to respond. Try again in a moment.",
+  network: "Couldn't reach the archive. Check your connection.",
+  unknown: "Something went wrong while digging. Try a different URL.",
+};
+
+const ERROR_STYLES: Record<ErrorKind, string> = {
+  not_found: "border-amber-900/60 bg-amber-950/40 text-amber-300",
+  timeout: "border-amber-900/60 bg-amber-950/40 text-amber-300",
+  network: "border-red-900/60 bg-red-950/40 text-red-300",
+  unknown: "border-red-900/60 bg-red-950/40 text-red-300",
+};
+
+function errorKindFromStatus(status: number): ErrorKind {
+  if (status === 404) return "not_found";
+  if (status === 504) return "timeout";
+  return "unknown";
+}
+
+function ErrorIcon({ kind }: { kind: ErrorKind }) {
+  const common = {
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.75,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className: "mt-0.5 h-5 w-5 shrink-0",
+    "aria-hidden": true,
+  };
+
+  switch (kind) {
+    case "not_found":
+      // Magnifier with a cross: searched, nothing there.
+      return (
+        <svg {...common}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5M9 9l4 4M13 9l-4 4" />
+        </svg>
+      );
+    case "timeout":
+      // Clock.
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      );
+    case "network":
+      // Wifi with a slash.
+      return (
+        <svg {...common}>
+          <path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M14.5 10.4A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 4.3-2.7M10.5 6.1A15 15 0 0 1 22 9.5" />
+          <circle cx="12" cy="20" r="0.75" fill="currentColor" />
+        </svg>
+      );
+    case "unknown":
+      // Warning triangle.
+      return (
+        <svg {...common}>
+          <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          <path d="M12 9v4M12 17h.01" />
+        </svg>
+      );
+  }
+}
+
 const HAS_PROTOCOL = /^[a-z][a-z0-9+.-]*:\/\//i;
 const EXAMPLES = ["geocities.com", "altavista.com", "myspace.com/tom"];
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorKind | null>(null);
   const [result, setResult] = useState<ResurrectResult | null>(null);
 
   function handleBlur() {
@@ -49,26 +121,29 @@ export default function Home() {
     setError(null);
     setResult(null);
 
+    let res: Response;
     try {
-      const res = await fetch("/api/resurrect", {
+      res = await fetch("/api/resurrect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: trimmed }),
       });
-      const data: unknown = await res.json();
+    } catch {
+      // fetch only rejects when the request never got a response.
+      setError("network");
+      setLoading(false);
+      return;
+    }
 
+    try {
       if (!res.ok) {
-        const message =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as { error: unknown }).error)
-            : "Something went wrong";
-        setError(message);
+        setError(errorKindFromStatus(res.status));
         return;
       }
-
-      setResult(data as ResurrectResult);
+      setResult((await res.json()) as ResurrectResult);
     } catch {
-      setError("Could not reach the server");
+      // A 200 with an unparseable body.
+      setError("unknown");
     } finally {
       setLoading(false);
     }
@@ -123,9 +198,13 @@ export default function Home() {
         </div>
 
         {error && (
-          <p role="alert" className="mt-3 text-sm text-red-500">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className={`mt-4 flex items-start gap-3 rounded-md border px-4 py-3 text-left text-sm ${ERROR_STYLES[error]}`}
+          >
+            <ErrorIcon kind={error} />
+            <p>{ERROR_MESSAGES[error]}</p>
+          </div>
         )}
 
         {loading && (
