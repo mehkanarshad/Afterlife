@@ -15,7 +15,10 @@ export async function getSnapshot(
   url: string
 ): Promise<{ snapshotUrl: string; timestamp: string } | null> {
   try {
-    const endpoint = `${WAYBACK_API}?url=${encodeURIComponent(url)}`;
+    // The availability API times out for some https:// URLs (e.g. geocities.com)
+    // but resolves the same bare host, so look up without the protocol.
+    const bare = url.trim().replace(/^https?:\/\//i, "");
+    const endpoint = `${WAYBACK_API}?url=${encodeURIComponent(bare)}`;
     const res = await fetch(endpoint);
 
     if (!res.ok) {
