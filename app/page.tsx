@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 interface ResurrectResult {
   originalUrl: string;
@@ -122,6 +122,55 @@ function BatSilhouette() {
   );
 }
 
+const LOADING_PHRASES = [
+  "Digging up the archive…",
+  "Reading the bones…",
+  "Stitching the fragments…",
+];
+
+// Cycles through LOADING_PHRASES every 1.5s. Mounted only while a request is
+// in flight, so the sequence restarts on each new request.
+function LoadingGhost() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % LOADING_PHRASES.length);
+    }, 1500);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex h-full flex-col items-center justify-center text-center"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-20 w-20 animate-spin-slow text-ghost/80 motion-reduce:animate-none"
+        aria-hidden="true"
+      >
+        <path d="M12 3a7 7 0 0 0-7 7v10l2.33-2 2.34 2 2.33-2 2.33 2 2.34-2L19 20V10a7 7 0 0 0-7-7z" />
+        <circle cx="9.5" cy="10" r="1" fill="currentColor" />
+        <circle cx="14.5" cy="10" r="1" fill="currentColor" />
+      </svg>
+      <p
+        key={index}
+        className="mt-6 animate-fade-in font-display text-sm tracking-widest text-ghost/80 motion-reduce:animate-none"
+      >
+        {LOADING_PHRASES[index]}
+      </p>
+    </div>
+  );
+}
+
 const HAS_PROTOCOL = /^[a-z][a-z0-9+.-]*:\/\//i;
 const EXAMPLES = ["geocities.com", "altavista.com", "myspace.com/tom"];
 
@@ -130,6 +179,21 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorKind | null>(null);
   const [result, setResult] = useState<ResurrectResult | null>(null);
+  const [barPhase, setBarPhase] = useState<"idle" | "running" | "done">("idle");
+
+  // Top progress bar: creeps toward 90% while loading, then fills and fades.
+  useEffect(() => {
+    if (loading) {
+      setBarPhase("running");
+      return;
+    }
+    setBarPhase((phase) => (phase === "running" ? "done" : phase));
+    const id = setTimeout(
+      () => setBarPhase((phase) => (phase === "done" ? "idle" : phase)),
+      500
+    );
+    return () => clearTimeout(id);
+  }, [loading]);
 
   function handleBlur() {
     const trimmed = url.trim();
@@ -194,10 +258,24 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-crypt px-6 py-12 font-mono text-neutral-200">
+      {barPhase !== "idle" && (
+        <div
+          className="pointer-events-none fixed left-0 top-0 z-50 h-0.5 w-full"
+          aria-hidden="true"
+        >
+          <div
+            className={`h-full bg-pumpkin shadow-[0_0_10px_rgba(255,107,26,0.8)] ${
+              barPhase === "running"
+                ? "animate-progress motion-reduce:animate-none"
+                : "w-full opacity-0 transition-opacity duration-500"
+            }`}
+          />
+        </div>
+      )}
       <Cobweb />
       <BatSilhouette />
       <div className="relative z-10 mx-auto max-w-md text-center">
-        <h1 className="font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.35)] sm:text-6xl">
+        <h1 className="animate-flicker font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.35)] motion-reduce:animate-none sm:text-6xl">
           Afterlife
         </h1>
         <p className="mt-2 font-display text-sm tracking-[0.25em] text-ghost/80">
@@ -249,16 +327,33 @@ export default function Home() {
             <p>{ERROR_MESSAGES[error]}</p>
           </div>
         )}
-
-        {loading && (
-          <div className="mt-8 flex justify-center" role="status" aria-label="Loading">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-800 border-t-pumpkin" />
-          </div>
-        )}
       </div>
 
-      {result && (
+      {loading && (
         <div className="relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2">
+          <section className="flex flex-col font-mono">
+            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
+              Ghost
+            </h2>
+            <div
+              className="h-24 animate-pulse rounded-md border border-neutral-800 bg-tomb motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          </section>
+
+          <section className="flex flex-col font-sans">
+            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
+              Resurrected
+            </h2>
+            <article className="h-[75vh] overflow-hidden rounded-md border border-neutral-800 bg-tomb p-6">
+              <LoadingGhost />
+            </article>
+          </section>
+        </div>
+      )}
+
+      {result && (
+        <div className="relative z-10 mx-auto mt-10 grid max-w-7xl animate-fade-in grid-cols-1 gap-6 motion-reduce:animate-none md:grid-cols-2">
           <section className="flex flex-col font-mono">
             <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
               Ghost

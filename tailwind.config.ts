@@ -16,6 +16,26 @@ const config: Config = {
         pumpkin: "#ff6b1a",
         ghost: "#a8e6cf",
       },
+      keyframes: {
+        flicker: {
+          "0%, 100%": { opacity: "0.95" },
+          "50%": { opacity: "1" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        progress: {
+          from: { width: "0%" },
+          to: { width: "90%" },
+        },
+      },
+      animation: {
+        flicker: "flicker 8s ease-in-out infinite",
+        "fade-in": "fade-in 400ms ease-in both",
+        progress: "progress 12s cubic-bezier(0.1, 0.6, 0.2, 1) forwards",
+        "spin-slow": "spin 3s linear infinite",
+      },
       fontFamily: {
         display: ["var(--font-cinzel)", "Georgia", "serif"],
         mono: [
