@@ -146,21 +146,10 @@ function LoadingGhost() {
       aria-live="polite"
       className="flex h-full flex-col items-center justify-center text-center"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <GhostIcon
         className="h-20 w-20 animate-spin-slow text-ghost/80 motion-reduce:animate-none"
-        aria-hidden="true"
-      >
-        <path d="M12 3a7 7 0 0 0-7 7v10l2.33-2 2.34 2 2.33-2 2.33 2 2.34-2L19 20V10a7 7 0 0 0-7-7z" />
-        <circle cx="9.5" cy="10" r="1" fill="currentColor" />
-        <circle cx="14.5" cy="10" r="1" fill="currentColor" />
-      </svg>
+        strokeWidth={1.25}
+      />
       <p
         key={index}
         className="mt-6 animate-fade-in font-display text-sm tracking-widest text-ghost/80 motion-reduce:animate-none"
@@ -169,6 +158,99 @@ function LoadingGhost() {
       </p>
     </div>
   );
+}
+
+const GHOST_PATH =
+  "M12 3a7 7 0 0 0-7 7v10l2.33-2 2.34 2 2.33-2 2.33 2 2.34-2L19 20V10a7 7 0 0 0-7-7z";
+
+function GhostIcon({
+  className,
+  strokeWidth = 1.5,
+}: {
+  className: string;
+  strokeWidth?: number;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d={GHOST_PATH} />
+      <circle cx="9.5" cy="10" r="1" fill="currentColor" />
+      <circle cx="14.5" cy="10" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SkullIcon({ className }: { className: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 3C7.6 3 5 6 5 9.8c0 2.2 1 3.7 2.5 4.7V18h9v-3.5c1.5-1 2.5-2.5 2.5-4.7C19 6 16.4 3 12 3z" />
+      <circle cx="9" cy="10.5" r="1.4" fill="currentColor" />
+      <circle cx="15" cy="10.5" r="1.4" fill="currentColor" />
+      <path d="M12 13l-1 2h2zM10 18v2.5M12 18v2.5M14 18v2.5" />
+    </svg>
+  );
+}
+
+// Horizontal on mobile (between the stacked columns), vertical from md up.
+function ColumnDivider() {
+  const line =
+    "flex-1 bg-gradient-to-r from-transparent via-neutral-700 to-transparent h-px md:h-auto md:w-px md:bg-gradient-to-b";
+  return (
+    <div
+      className="flex items-center justify-center gap-3 md:flex-col"
+      aria-hidden="true"
+    >
+      <span className={line} />
+      <GhostIcon className="h-5 w-5 shrink-0 text-ghost/60" />
+      <span className={line} />
+    </div>
+  );
+}
+
+function ResultsLayout({
+  ghost,
+  resurrected,
+  className = "",
+}: {
+  ghost: React.ReactNode;
+  resurrected: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${className}`}
+    >
+      {ghost}
+      <ColumnDivider />
+      {resurrected}
+    </div>
+  );
+}
+
+function scrollToGhost() {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document
+    .getElementById("ghost")
+    ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 }
 
 const HAS_PROTOCOL = /^[a-z][a-z0-9+.-]*:\/\//i;
@@ -330,115 +412,132 @@ export default function Home() {
       </div>
 
       {loading && (
-        <div className="relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2">
-          <section className="flex flex-col font-mono">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
-              Ghost
-            </h2>
-            <div
-              className="h-24 animate-pulse rounded-md border border-neutral-800 bg-tomb motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-          </section>
-
-          <section className="flex flex-col font-sans">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
-              Resurrected
-            </h2>
-            <article className="h-[75vh] overflow-hidden rounded-md border border-neutral-800 bg-tomb p-6">
-              <LoadingGhost />
-            </article>
-          </section>
-        </div>
+        <ResultsLayout
+          ghost={
+            <section id="ghost" className="flex scroll-mt-6 flex-col font-mono">
+              <h2 className="mb-2 text-sm uppercase tracking-widest text-ghost [font-variant-caps:all-small-caps]">
+                Ghost
+              </h2>
+              <div
+                className="h-32 animate-pulse rounded-b-md rounded-t-[2rem] border border-neutral-800 bg-tomb motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            </section>
+          }
+          resurrected={
+            <section className="flex flex-col font-mono">
+              <h2 className="mb-2 text-sm uppercase tracking-widest text-pumpkin [font-variant-caps:all-small-caps]">
+                Resurrected
+              </h2>
+              <article className="h-[24rem] overflow-hidden rounded-md border border-neutral-800 bg-tomb p-8 md:h-[75vh]">
+                <LoadingGhost />
+              </article>
+            </section>
+          }
+        />
       )}
 
       {result && (
-        <div className="relative z-10 mx-auto mt-10 grid max-w-7xl animate-fade-in grid-cols-1 gap-6 motion-reduce:animate-none md:grid-cols-2">
-          <section className="flex flex-col font-mono">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
-              Ghost
-            </h2>
-            <div className="rounded-md border border-neutral-800 bg-tomb p-6 text-sm">
+        <ResultsLayout
+          className="animate-fade-in motion-reduce:animate-none"
+          ghost={
+            <section id="ghost" className="flex scroll-mt-6 flex-col font-mono">
+              <h2 className="mb-2 text-sm uppercase tracking-widest text-ghost [font-variant-caps:all-small-caps]">
+                Ghost
+              </h2>
               <a
                 href={result.snapshotUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="break-all text-ghost underline underline-offset-4 hover:text-pumpkin"
+                className="group relative block overflow-hidden rounded-b-md rounded-t-[2rem] border border-neutral-700/80 bg-tomb px-6 pb-6 pt-7 transition-[border-color,box-shadow] hover:border-pumpkin/60 hover:shadow-[0_0_24px_rgba(255,107,26,0.12)] focus-visible:border-pumpkin focus-visible:outline-none"
               >
-                View original snapshot
-              </a>
-              <p className="mt-3 break-all text-xs text-neutral-500">
-                {result.snapshotUrl}
-              </p>
-            </div>
-          </section>
-
-          <section className="flex flex-col font-sans">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
-              Resurrected
-            </h2>
-            <article className="h-[75vh] overflow-auto rounded-md border border-neutral-800 bg-tomb p-6">
-              {isEmpty && (
-                <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-16 w-16"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 3a7 7 0 0 0-7 7v10l2.33-2 2.34 2 2.33-2 2.33 2 2.34-2L19 20V10a7 7 0 0 0-7-7z" />
-                    <circle cx="9.5" cy="10" r="1" fill="currentColor" />
-                    <circle cx="14.5" cy="10" r="1" fill="currentColor" />
-                  </svg>
-                  <p className="mt-4 text-base">
-                    Nothing readable survived in this snapshot.
-                  </p>
-                  <p className="mt-2 max-w-sm text-sm text-gray-500">
-                    The archive only captured a redirect stub. Try another URL, or
-                    view the original snapshot below.
-                  </p>
-                  <a
-                    href={result.snapshotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
-                  >
-                    View original snapshot
-                  </a>
-                </div>
-              )}
-              {result.extracted.title && (
-                <h1 className="mb-4 text-3xl font-bold">
-                  {result.extracted.title}
-                </h1>
-              )}
-              {result.extracted.headings.map((heading, i) => (
-                <h2 key={`h-${i}`} className="mb-2 mt-6 text-xl font-semibold">
-                  {heading}
-                </h2>
-              ))}
-              {result.extracted.paragraphs.map((paragraph, i) => (
-                <p key={`p-${i}`} className="mb-4 leading-relaxed text-neutral-300">
-                  {paragraph}
+                <span className="noise-overlay" aria-hidden="true" />
+                <SkullIcon className="relative h-8 w-8 text-neutral-500 transition-colors group-hover:text-ghost" />
+                <p
+                  className="relative mt-4 truncate text-xs text-neutral-400"
+                  title={result.snapshotUrl}
+                >
+                  {result.snapshotUrl}
                 </p>
-              ))}
-              {result.extracted.images.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={`i-${i}`}
-                  src={src}
-                  alt=""
-                  className="mb-4 max-w-full"
-                />
-              ))}
-            </article>
-          </section>
-        </div>
+                <span className="relative mt-4 inline-block text-sm text-pumpkin">
+                  View original snapshot →
+                </span>
+              </a>
+            </section>
+          }
+          resurrected={
+            <section className="flex flex-col font-mono">
+              <h2 className="mb-2 text-sm uppercase tracking-widest text-pumpkin [font-variant-caps:all-small-caps]">
+                Resurrected
+              </h2>
+              <article className="overflow-auto rounded-md border border-neutral-800 bg-tomb p-8 font-sans md:h-[75vh] md:p-10">
+                {isEmpty ? (
+                  <div className="flex min-h-[20rem] flex-col items-center justify-center text-center text-gray-400 md:h-full">
+                    <GhostIcon className="h-16 w-16" />
+                    <p className="mt-4 text-base">
+                      Nothing readable survived in this snapshot.
+                    </p>
+                    <p className="mt-2 max-w-sm text-sm text-gray-500">
+                      The archive only captured a redirect stub. Try another URL,
+                      or view the original snapshot below.
+                    </p>
+                    <a
+                      href={result.snapshotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
+                    >
+                      View original snapshot
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    {result.extracted.title && (
+                      <h1 className="mb-6 font-display text-3xl font-bold leading-tight text-neutral-50">
+                        {result.extracted.title}
+                      </h1>
+                    )}
+                    {result.extracted.headings.map((heading, i) => (
+                      <h2
+                        key={`h-${i}`}
+                        className="mb-3 mt-8 font-display text-xl font-semibold text-neutral-100"
+                      >
+                        {heading}
+                      </h2>
+                    ))}
+                    {result.extracted.paragraphs.map((paragraph, i) => (
+                      <p
+                        key={`p-${i}`}
+                        className="mb-5 text-base leading-7 text-neutral-300"
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
+                    {result.extracted.images.map((src, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={`i-${i}`}
+                        src={src}
+                        alt=""
+                        className="mb-5 max-w-full rounded-sm border border-pumpkin/60 saturate-50 transition-[filter] duration-300 hover:saturate-100"
+                      />
+                    ))}
+                    <a
+                      href="#ghost"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollToGhost();
+                      }}
+                      className="mt-6 inline-block font-mono text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
+                    >
+                      ← Back to ghost
+                    </a>
+                  </>
+                )}
+              </article>
+            </section>
+          }
+        />
       )}
     </main>
   );

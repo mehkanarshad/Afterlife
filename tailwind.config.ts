@@ -37,6 +37,12 @@ const config: Config = {
         "spin-slow": "spin 3s linear infinite",
       },
       fontFamily: {
+        sans: [
+          "var(--font-geist-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
         display: ["var(--font-cinzel)", "Georgia", "serif"],
         mono: [
           "var(--font-jetbrains-mono)",
