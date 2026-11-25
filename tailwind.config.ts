@@ -11,6 +11,20 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        crypt: "#0a0a0f",
+        tomb: "#15151c",
+        pumpkin: "#ff6b1a",
+        ghost: "#a8e6cf",
+      },
+      fontFamily: {
+        display: ["var(--font-cinzel)", "Georgia", "serif"],
+        mono: [
+          "var(--font-jetbrains-mono)",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace",
+        ],
       },
     },
   },

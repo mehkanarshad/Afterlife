@@ -86,6 +86,42 @@ function ErrorIcon({ kind }: { kind: ErrorKind }) {
   }
 }
 
+function Cobweb() {
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeLinecap="round"
+      className="pointer-events-none absolute right-0 top-0 z-0 h-40 w-40 text-ghost opacity-[0.12] sm:h-64 sm:w-64"
+      aria-hidden="true"
+    >
+      {/* radial threads from the top-right corner */}
+      <path d="M200 0L0 0M200 0L0 40M200 0L0 90M200 0L30 170M200 0L90 200M200 0L150 200M200 0L200 200" />
+      {/* sagging concentric strands */}
+      <path d="M170 0Q165 28 200 30" />
+      <path d="M130 0Q125 55 200 60" />
+      <path d="M85 0Q80 85 200 95" />
+      <path d="M40 0Q40 125 200 135" />
+      <path d="M0 40Q10 160 130 200" />
+    </svg>
+  );
+}
+
+function BatSilhouette() {
+  return (
+    <svg
+      viewBox="0 0 120 60"
+      fill="currentColor"
+      className="pointer-events-none fixed bottom-4 left-4 z-0 h-16 w-32 text-pumpkin opacity-[0.07] sm:h-24 sm:w-48"
+      aria-hidden="true"
+    >
+      <path d="M60 18c-3 0-5 3-6 6-4-3-9-6-16-6C28 18 18 10 4 6c4 8 5 16 4 22 6-3 12-3 17 0-2 4-2 8 0 12 5-4 10-5 16-3 3 3 6 11 19 17 13-6 16-14 19-17 6-2 11-1 16 3 2-4 2-8 0-12 5-3 11-3 17 0-1-6 0-14 4-22-14 4-24 12-34 12-7 0-12 3-16 6-1-3-3-6-6-6z" />
+    </svg>
+  );
+}
+
 const HAS_PROTOCOL = /^[a-z][a-z0-9+.-]*:\/\//i;
 const EXAMPLES = ["geocities.com", "altavista.com", "myspace.com/tom"];
 
@@ -157,10 +193,17 @@ export default function Home() {
     result.extracted.images.length === 0;
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 px-6 py-12">
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Afterlife</h1>
-        <form onSubmit={handleSubmit} className="mt-6 flex gap-2">
+    <main className="relative min-h-screen overflow-hidden bg-crypt px-6 py-12 font-mono text-neutral-200">
+      <Cobweb />
+      <BatSilhouette />
+      <div className="relative z-10 mx-auto max-w-md text-center">
+        <h1 className="font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.35)] sm:text-6xl">
+          Afterlife
+        </h1>
+        <p className="mt-2 font-display text-sm tracking-[0.25em] text-ghost/80">
+          Resurrect the dead web.
+        </p>
+        <form onSubmit={handleSubmit} className="mt-8 flex gap-2">
           <input
             type="text"
             value={url}
@@ -168,18 +211,18 @@ export default function Home() {
             onBlur={handleBlur}
             placeholder="Enter a dead website URL, e.g. geocities.com"
             aria-label="Website URL"
-            className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm placeholder:text-neutral-500 focus:border-neutral-400 focus:outline-none"
+            className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-tomb px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60"
           />
           <button
             type="submit"
             disabled={loading || url.trim() === ""}
-            className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-gradient-to-b from-[#ff8a3d] to-pumpkin px-4 py-2 text-sm font-semibold text-black transition-shadow hover:shadow-[0_0_20px_4px_rgba(255,107,26,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none"
           >
             {loading ? "Digging…" : "Resurrect"}
           </button>
         </form>
 
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-neutral-500">
           We&apos;ll look up the most recent Wayback Machine snapshot.
         </p>
 
@@ -190,7 +233,7 @@ export default function Home() {
               type="button"
               onClick={() => handleExampleClick(example)}
               disabled={loading}
-              className="rounded-full border border-neutral-700 px-3 py-1 font-mono text-xs text-neutral-300 transition-colors hover:border-neutral-400 hover:text-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-neutral-800 bg-tomb/60 px-3 py-1 font-mono text-xs text-ghost/80 transition-colors hover:border-pumpkin hover:text-pumpkin disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-neutral-800 disabled:hover:text-ghost/80"
             >
               {example}
             </button>
@@ -209,23 +252,23 @@ export default function Home() {
 
         {loading && (
           <div className="mt-8 flex justify-center" role="status" aria-label="Loading">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-700 border-t-neutral-100" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-800 border-t-pumpkin" />
           </div>
         )}
       </div>
 
       {result && (
-        <div className="mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2">
           <section className="flex flex-col font-mono">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-neutral-400">
+            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
               Ghost
             </h2>
-            <div className="rounded-md border border-neutral-800 bg-neutral-900 p-6 text-sm">
+            <div className="rounded-md border border-neutral-800 bg-tomb p-6 text-sm">
               <a
                 href={result.snapshotUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="break-all text-sky-400 underline underline-offset-4 hover:text-sky-300"
+                className="break-all text-ghost underline underline-offset-4 hover:text-pumpkin"
               >
                 View original snapshot
               </a>
@@ -236,10 +279,10 @@ export default function Home() {
           </section>
 
           <section className="flex flex-col font-sans">
-            <h2 className="mb-2 text-xs uppercase tracking-widest text-neutral-400">
+            <h2 className="mb-2 text-xs uppercase tracking-widest text-pumpkin/80">
               Resurrected
             </h2>
-            <article className="h-[75vh] overflow-auto rounded-md border border-neutral-800 bg-neutral-900 p-6">
+            <article className="h-[75vh] overflow-auto rounded-md border border-neutral-800 bg-tomb p-6">
               {isEmpty && (
                 <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
                   <svg
@@ -268,7 +311,7 @@ export default function Home() {
                     href={result.snapshotUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 text-sm text-sky-400 underline underline-offset-4 hover:text-sky-300"
+                    className="mt-4 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
                   >
                     View original snapshot
                   </a>
