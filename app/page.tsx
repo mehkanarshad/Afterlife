@@ -185,6 +185,26 @@ function SkullIcon({ className }: { className: string }) {
   );
 }
 
+function GravestoneIcon({ className }: { className: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 28"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M5 25V11a7 7 0 0 1 14 0v14z" />
+      <path d="M12 9v8M9 12h6" />
+      <path d="M2 25h20" />
+    </svg>
+  );
+}
+
 // Placeholder line for the loading skeleton (pale gray gradient sweep).
 function ShimmerLine({ width }: { width: string }) {
   return (
@@ -235,14 +255,17 @@ function ResultsLayout({
   ghost,
   resurrected,
   className = "",
+  id,
 }: {
   ghost: React.ReactNode;
   resurrected: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
     <div
-      className={`relative z-10 mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${className}`}
+      id={id}
+      className={`relative z-10 mx-auto mt-10 grid w-full max-w-7xl scroll-mt-6 grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${className}`}
     >
       {ghost}
       <ColumnDivider />
@@ -267,6 +290,19 @@ export default function Home() {
   const [error, setError] = useState<ErrorKind | null>(null);
   const [result, setResult] = useState<ResurrectResult | null>(null);
   const [barPhase, setBarPhase] = useState<"idle" | "running" | "done">("idle");
+  const [focused, setFocused] = useState(false);
+
+  // The helper text is visible while the input has focus or holds a value.
+  const helperVisible = focused || url.trim() !== "";
+
+  // Scroll the results into view as soon as they appear.
+  useEffect(() => {
+    if (!result) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document
+      .getElementById("results")
+      ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, [result]);
 
   // Top progress bar: creeps toward 90% while loading, then fills and fades.
   useEffect(() => {
@@ -283,6 +319,7 @@ export default function Home() {
   }, [loading]);
 
   function handleBlur() {
+    setFocused(false);
     const trimmed = url.trim();
     if (trimmed && !HAS_PROTOCOL.test(trimmed)) {
       setUrl(`https://${trimmed}`);
@@ -344,7 +381,7 @@ export default function Home() {
     result.extracted.images.length === 0;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-crypt px-6 py-12 font-mono text-neutral-200">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-crypt px-6 py-12 font-mono text-neutral-200">
       {barPhase !== "idle" && (
         <div
           className="pointer-events-none fixed left-0 top-0 z-50 h-0.5 w-full"
@@ -361,7 +398,7 @@ export default function Home() {
       )}
       <Cobweb />
       <BatSilhouette />
-      <div className="relative z-10 mx-auto max-w-md text-center">
+      <div className="relative z-10 mx-auto w-full max-w-md text-center">
         <h1 className="animate-flicker font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.35)] motion-reduce:animate-none sm:text-6xl">
           Afterlife
         </h1>
@@ -373,7 +410,9 @@ export default function Home() {
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            onFocus={() => setFocused(true)}
             onBlur={handleBlur}
+            aria-describedby="url-helper"
             placeholder="Enter a dead website URL, e.g. geocities.com"
             aria-label="Website URL"
             className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-tomb px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60"
@@ -381,13 +420,18 @@ export default function Home() {
           <button
             type="submit"
             disabled={loading || url.trim() === ""}
-            className="rounded-md bg-gradient-to-b from-[#ff8a3d] to-pumpkin px-4 py-2 text-sm font-semibold text-black transition-shadow hover:shadow-[0_0_20px_4px_rgba(255,107,26,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none"
+            className="rounded-md bg-gradient-to-b from-[#ff8a3d] to-pumpkin px-4 py-2 text-sm font-semibold text-black shadow-[0_0_10px_1px_rgba(255,107,26,0.25)] transition-[box-shadow,transform,opacity] duration-100 hover:shadow-[0_0_28px_8px_rgba(255,107,26,0.6)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:shadow-none disabled:active:scale-100"
           >
             {loading ? "Digging…" : "Resurrect"}
           </button>
         </form>
 
-        <p className="mt-3 text-xs text-neutral-500">
+        <p
+          id="url-helper"
+          className={`mt-3 text-xs text-neutral-500 transition-opacity duration-300 motion-reduce:transition-none ${
+            helperVisible ? "opacity-100" : "opacity-0"
+          }`}
+        >
           We&apos;ll look up the most recent Wayback Machine snapshot.
         </p>
 
@@ -398,8 +442,9 @@ export default function Home() {
               type="button"
               onClick={() => handleExampleClick(example)}
               disabled={loading}
-              className="rounded-full border border-neutral-800 bg-tomb/60 px-3 py-1 font-mono text-xs text-ghost/80 transition-colors hover:border-pumpkin hover:text-pumpkin disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-neutral-800 disabled:hover:text-ghost/80"
+              className="group inline-flex items-center gap-1.5 rounded-b-sm rounded-t-xl border border-neutral-800 bg-tomb px-3 py-1.5 font-mono text-xs text-ghost/80 transition-colors hover:border-pumpkin hover:text-pumpkin focus-visible:border-pumpkin focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-neutral-800 disabled:hover:text-ghost/80"
             >
+              <SkullIcon className="h-3.5 w-3.5 shrink-0 text-neutral-500 transition-colors group-hover:text-pumpkin" />
               {example}
             </button>
           ))}
@@ -454,6 +499,7 @@ export default function Home() {
 
       {result && (
         <ResultsLayout
+          id="results"
           className="animate-fade-in motion-reduce:animate-none"
           ghost={
             <section id="ghost" className="flex scroll-mt-6 flex-col font-mono">
@@ -535,6 +581,11 @@ export default function Home() {
           }
         />
       )}
+
+      <footer className="relative z-10 mt-auto flex flex-col items-center gap-2 pt-16 text-xs text-neutral-500">
+        <GravestoneIcon className="h-8 w-8 text-neutral-600" />
+        <p>Built for Kiroween 2026 🎃</p>
+      </footer>
     </main>
   );
 }
