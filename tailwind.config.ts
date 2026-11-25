@@ -25,6 +25,10 @@ const config: Config = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        shimmer: {
+          from: { backgroundPosition: "200% 0" },
+          to: { backgroundPosition: "-200% 0" },
+        },
         progress: {
           from: { width: "0%" },
           to: { width: "90%" },
@@ -34,6 +38,7 @@ const config: Config = {
         flicker: "flicker 8s ease-in-out infinite",
         "fade-in": "fade-in 400ms ease-in both",
         progress: "progress 12s cubic-bezier(0.1, 0.6, 0.2, 1) forwards",
+        shimmer: "shimmer 1.8s linear infinite",
         "spin-slow": "spin 3s linear infinite",
       },
       fontFamily: {

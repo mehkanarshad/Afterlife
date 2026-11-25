@@ -58,7 +58,7 @@ Acceptance criteria:
 1. `app/page.tsx` shows a centered URL input and a "Resurrect" button, on a dark background.
 2. Submitting calls `POST /api/resurrect` with the entered URL.
 3. A loading spinner shows while the request is pending.
-4. On error, an alert box appears below the input. See requirement 5.4.
+4. On error, an alert card appears below the input. See requirement 5.4.
 5. On success, two columns appear side by side on medium screens and wider, and stack on narrow screens.
 6. The left column is labeled "Ghost", uses a monospace font, and shows a "View original snapshot" link to `snapshotUrl`. The link opens in a new tab. An iframe is not used, because the Wayback Machine snapshot would not load in it.
 7. The right column is labeled "Resurrected", uses a sans-serif font, and renders the title as `<h1>`, headings as `<h2>`, paragraphs as `<p>`, and images as `<img>` with `max-width: 100%`.
@@ -75,19 +75,22 @@ Acceptance criteria:
    - Below 50, the response includes `"status": "thin_snapshot"` and `"hint": "This snapshot contains very little readable content. It may be a redirect or error page."`
    - At 50 or more, the response includes `"status": "ok"` and no `hint`.
    - This is metadata only. The HTTP status code stays 200.
-4. **Contextual error messages.** Each error appears as a separate alert box with its own icon, below the input and above the results. The message is chosen from the HTTP status:
+4. **Contextual error messages.** Each error appears as an alert card below the input and above the results. The card has a dark background, a 1px orange border with a 4px orange left border, and an orange warning icon. The headline is white and the hint is muted gray. The copy is chosen from the HTTP status:
 
-   | Condition | Icon | Color | Message |
-   |---|---|---|---|
-   | HTTP 404 | Magnifier with a cross | Amber | "No archive exists for this URL. It may never have been crawled, or the URL is misspelled." |
-   | HTTP 504 | Clock | Amber | "Wayback Machine took too long to respond. Try again in a moment." |
-   | Network failure (`fetch` rejects) | Wifi with a slash | Red | "Couldn't reach the archive. Check your connection." |
-   | Any other error, or an unreadable 200 body | Warning triangle | Red | "Something went wrong while digging. Try a different URL." |
+   | Condition | Headline | Hint |
+   |---|---|---|
+   | HTTP 404 | "No archive exists for this URL." | "It may never have been crawled, or the URL is misspelled." |
+   | HTTP 504 | "Wayback Machine took too long to respond." | "Try again in a moment." |
+   | Network failure (`fetch` rejects) | "Couldn't reach the archive." | "Check your connection." |
+   | Any other error, or an unreadable 200 body | "Something went wrong while digging." | "Try a different URL." |
 
-5. **Empty state.** When the title is `""` and headings, paragraphs and images are all empty, the Resurrected panel shows a ghost icon with the following copy, in muted gray:
-   - "Nothing readable survived in this snapshot."
-   - "The archive only captured a redirect stub. Try another URL, or view the original snapshot below."
-   - A "View original snapshot" link sits inside the empty state. The link in the Ghost column stays visible.
+5. **Empty state.** When the title is `""` and headings, paragraphs and images are all empty, the Resurrected panel shows, centered and top to bottom:
+   - A ghost icon with a soft orange glow.
+   - "Nothing readable survived in this snapshot." in pale green.
+   - "The archive only captured a redirect stub. Try another URL, or view the original snapshot below." in muted gray.
+   - The tombstone snapshot link, the same card used in the Ghost column.
+
+6. **Loading skeleton.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines (a pale gray gradient sweep) above the rotating ghost and the cycling status text.
 
 ## Constraints
 

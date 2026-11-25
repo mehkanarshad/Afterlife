@@ -16,19 +16,24 @@ interface ResurrectResult {
 
 type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
 
-const ERROR_MESSAGES: Record<ErrorKind, string> = {
-  not_found:
-    "No archive exists for this URL. It may never have been crawled, or the URL is misspelled.",
-  timeout: "Wayback Machine took too long to respond. Try again in a moment.",
-  network: "Couldn't reach the archive. Check your connection.",
-  unknown: "Something went wrong while digging. Try a different URL.",
-};
-
-const ERROR_STYLES: Record<ErrorKind, string> = {
-  not_found: "border-amber-900/60 bg-amber-950/40 text-amber-300",
-  timeout: "border-amber-900/60 bg-amber-950/40 text-amber-300",
-  network: "border-red-900/60 bg-red-950/40 text-red-300",
-  unknown: "border-red-900/60 bg-red-950/40 text-red-300",
+// Each error has a headline (shown in white) and a hint (muted).
+const ERROR_COPY: Record<ErrorKind, { message: string; hint: string }> = {
+  not_found: {
+    message: "No archive exists for this URL.",
+    hint: "It may never have been crawled, or the URL is misspelled.",
+  },
+  timeout: {
+    message: "Wayback Machine took too long to respond.",
+    hint: "Try again in a moment.",
+  },
+  network: {
+    message: "Couldn't reach the archive.",
+    hint: "Check your connection.",
+  },
+  unknown: {
+    message: "Something went wrong while digging.",
+    hint: "Try a different URL.",
+  },
 };
 
 function errorKindFromStatus(status: number): ErrorKind {
@@ -37,53 +42,23 @@ function errorKindFromStatus(status: number): ErrorKind {
   return "unknown";
 }
 
-function ErrorIcon({ kind }: { kind: ErrorKind }) {
-  const common = {
-    xmlns: "http://www.w3.org/2000/svg",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.75,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className: "mt-0.5 h-5 w-5 shrink-0",
-    "aria-hidden": true,
-  };
-
-  switch (kind) {
-    case "not_found":
-      // Magnifier with a cross: searched, nothing there.
-      return (
-        <svg {...common}>
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3.5-3.5M9 9l4 4M13 9l-4 4" />
-        </svg>
-      );
-    case "timeout":
-      // Clock.
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
-        </svg>
-      );
-    case "network":
-      // Wifi with a slash.
-      return (
-        <svg {...common}>
-          <path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M14.5 10.4A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 4.3-2.7M10.5 6.1A15 15 0 0 1 22 9.5" />
-          <circle cx="12" cy="20" r="0.75" fill="currentColor" />
-        </svg>
-      );
-    case "unknown":
-      // Warning triangle.
-      return (
-        <svg {...common}>
-          <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-          <path d="M12 9v4M12 17h.01" />
-        </svg>
-      );
-  }
+function WarningIcon({ className }: { className: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
 }
 
 function Cobweb() {
@@ -144,7 +119,7 @@ function LoadingGhost() {
     <div
       role="status"
       aria-live="polite"
-      className="flex h-full flex-col items-center justify-center text-center"
+      className="flex flex-1 flex-col items-center justify-center text-center"
     >
       <GhostIcon
         className="h-20 w-20 animate-spin-slow text-ghost/80 motion-reduce:animate-none"
@@ -207,6 +182,36 @@ function SkullIcon({ className }: { className: string }) {
       <circle cx="15" cy="10.5" r="1.4" fill="currentColor" />
       <path d="M12 13l-1 2h2zM10 18v2.5M12 18v2.5M14 18v2.5" />
     </svg>
+  );
+}
+
+// Placeholder line for the loading skeleton (pale gray gradient sweep).
+function ShimmerLine({ width }: { width: string }) {
+  return (
+    <div
+      className={`h-4 animate-shimmer rounded bg-[linear-gradient(90deg,rgba(200,200,210,0.05)_0%,rgba(200,200,210,0.18)_50%,rgba(200,200,210,0.05)_100%)] bg-[length:200%_100%] motion-reduce:animate-none ${width}`}
+    />
+  );
+}
+
+// The snapshot link, styled as a tombstone card.
+function TombstoneLink({ url }: { url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative block overflow-hidden rounded-b-md rounded-t-[2rem] border border-neutral-700/80 bg-tomb px-6 pb-6 pt-7 font-mono transition-[border-color,box-shadow] hover:border-pumpkin/60 hover:shadow-[0_0_24px_rgba(255,107,26,0.12)] focus-visible:border-pumpkin focus-visible:outline-none"
+    >
+      <span className="noise-overlay" aria-hidden="true" />
+      <SkullIcon className="relative h-8 w-8 text-neutral-500 transition-colors group-hover:text-ghost" />
+      <p className="relative mt-4 truncate text-xs text-neutral-400" title={url}>
+        {url}
+      </p>
+      <span className="relative mt-4 inline-block text-sm text-pumpkin">
+        View original snapshot →
+      </span>
+    </a>
   );
 }
 
@@ -403,10 +408,15 @@ export default function Home() {
         {error && (
           <div
             role="alert"
-            className={`mt-4 flex items-start gap-3 rounded-md border px-4 py-3 text-left text-sm ${ERROR_STYLES[error]}`}
+            className="mt-4 flex items-start gap-3 rounded-md border border-pumpkin/40 border-l-4 border-l-pumpkin bg-tomb px-4 py-3 text-left"
           >
-            <ErrorIcon kind={error} />
-            <p>{ERROR_MESSAGES[error]}</p>
+            <WarningIcon className="mt-0.5 h-5 w-5 shrink-0 text-pumpkin" />
+            <div>
+              <p className="text-sm text-white">{ERROR_COPY[error].message}</p>
+              <p className="mt-1 text-xs text-neutral-400">
+                {ERROR_COPY[error].hint}
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -429,7 +439,12 @@ export default function Home() {
               <h2 className="mb-2 text-sm uppercase tracking-widest text-pumpkin [font-variant-caps:all-small-caps]">
                 Resurrected
               </h2>
-              <article className="h-[24rem] overflow-hidden rounded-md border border-neutral-800 bg-tomb p-8 md:h-[75vh]">
+              <article className="flex h-[24rem] flex-col overflow-hidden rounded-md border border-neutral-800 bg-tomb p-8 md:h-[75vh] md:p-10">
+                <div className="space-y-4" aria-hidden="true">
+                  <ShimmerLine width="w-3/4" />
+                  <ShimmerLine width="w-full" />
+                  <ShimmerLine width="w-3/5" />
+                </div>
                 <LoadingGhost />
               </article>
             </section>
@@ -445,24 +460,7 @@ export default function Home() {
               <h2 className="mb-2 text-sm uppercase tracking-widest text-ghost [font-variant-caps:all-small-caps]">
                 Ghost
               </h2>
-              <a
-                href={result.snapshotUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative block overflow-hidden rounded-b-md rounded-t-[2rem] border border-neutral-700/80 bg-tomb px-6 pb-6 pt-7 transition-[border-color,box-shadow] hover:border-pumpkin/60 hover:shadow-[0_0_24px_rgba(255,107,26,0.12)] focus-visible:border-pumpkin focus-visible:outline-none"
-              >
-                <span className="noise-overlay" aria-hidden="true" />
-                <SkullIcon className="relative h-8 w-8 text-neutral-500 transition-colors group-hover:text-ghost" />
-                <p
-                  className="relative mt-4 truncate text-xs text-neutral-400"
-                  title={result.snapshotUrl}
-                >
-                  {result.snapshotUrl}
-                </p>
-                <span className="relative mt-4 inline-block text-sm text-pumpkin">
-                  View original snapshot →
-                </span>
-              </a>
+              <TombstoneLink url={result.snapshotUrl} />
             </section>
           }
           resurrected={
@@ -472,23 +470,21 @@ export default function Home() {
               </h2>
               <article className="overflow-auto rounded-md border border-neutral-800 bg-tomb p-8 font-sans md:h-[75vh] md:p-10">
                 {isEmpty ? (
-                  <div className="flex min-h-[20rem] flex-col items-center justify-center text-center text-gray-400 md:h-full">
-                    <GhostIcon className="h-16 w-16" />
-                    <p className="mt-4 text-base">
+                  <div className="flex min-h-[20rem] flex-col items-center justify-center text-center md:h-full">
+                    <GhostIcon
+                      className="h-20 w-20 text-ghost/90 drop-shadow-[0_0_14px_rgba(255,107,26,0.55)]"
+                      strokeWidth={1.25}
+                    />
+                    <p className="mt-6 text-base text-ghost">
                       Nothing readable survived in this snapshot.
                     </p>
-                    <p className="mt-2 max-w-sm text-sm text-gray-500">
+                    <p className="mt-2 max-w-sm text-sm text-neutral-500">
                       The archive only captured a redirect stub. Try another URL,
                       or view the original snapshot below.
                     </p>
-                    <a
-                      href={result.snapshotUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
-                    >
-                      View original snapshot
-                    </a>
+                    <div className="mt-8 w-full max-w-sm text-left">
+                      <TombstoneLink url={result.snapshotUrl} />
+                    </div>
                   </div>
                 ) : (
                   <>
