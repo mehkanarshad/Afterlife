@@ -90,7 +90,12 @@ Acceptance criteria:
    - "The archive only captured a redirect stub. Try another URL, or view the original snapshot below." in muted gray.
    - The tombstone snapshot link, the same card used in the Ghost column.
 
-6. **Loading skeleton.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines (a pale gray gradient sweep) above the rotating ghost and the cycling status text.
+6. **Resurrection ceremony.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines above a short ceremony, built from CSS keyframes plus a small typewriter hook (`app/ceremony.tsx`):
+   - 0–400ms: a glowing orange crack draws down a tombstone. 400–650ms: the two halves split apart.
+   - 550–1350ms: a ghost rises out of the crack until it clears the stone, then floats gently in place.
+   - Status text types out on a schedule: "Scanning archive…" at 0ms, "47 snapshots found…" at 650ms, "Rebuilding…" at 1300ms. Screen readers get each whole phrase, not each typed character.
+   - The result is held until 2000ms even if the response is faster. It then reveals in groups 200ms apart: title, headings, paragraphs, images. A fast response is fully shown at about 2.9s. A slower response keeps the ceremony's idle state until it arrives. Errors skip the ceremony and show at once.
+   - Under reduced motion, the ceremony shows its final state without movement and does not delay the result.
 
 ### 6. Graveyard grid
 
@@ -123,4 +128,5 @@ Acceptance criteria:
 - When the Wayback availability API times out, it returns HTTP 200 with an `error` field. `getSnapshot` treats that as no snapshot, so the API returns 404, and the UI shows "No archive exists" when a retry would work.
 - The UI empty state uses its own all-fields-empty check. It does not read the API's `status` field.
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
+- The ceremony's "47 snapshots found…" is fixed copy. The API only looks up the closest snapshot and does not count them.
 - Wayback snapshot fetches can take over 30 seconds. The route's 10-second timeout then returns 504 for every site until the archive speeds up.

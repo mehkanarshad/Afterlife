@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { DEAD_SITES, DeadSite } from "@/lib/sites";
+import { useCeremonyGate } from "./ceremony";
 import { BatSilhouette, Cobweb, GravestoneIcon } from "./icons";
 import { Modal } from "./modal";
 import { ErrorAlert, LoadingView, ResultView } from "./results-view";
@@ -23,6 +24,10 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [focused, setFocused] = useState(false);
   const { loading, error, result, resurrect, reset } = useResurrect();
+  const ceremonyDone = useCeremonyGate(loading);
+  // The ceremony runs for at least CEREMONY_MS, even when the response is
+  // faster. Errors skip it and show at once.
+  const showCeremony = error === null && (loading || (result !== null && !ceremonyDone));
 
   // The confirm step is shown until the first request for this site starts.
   const started = loading || error !== null || result !== null;
@@ -57,8 +62,8 @@ export default function Home() {
   const outcome = (
     <>
       {error && <ErrorAlert kind={error} />}
-      {loading && <LoadingView />}
-      {result && <ResultView result={result} />}
+      {showCeremony && <LoadingView />}
+      {result && ceremonyDone && <ResultView result={result} />}
     </>
   );
 

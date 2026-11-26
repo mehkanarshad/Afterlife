@@ -33,6 +33,10 @@ const config: Config = {
           from: { width: "0%" },
           to: { width: "90%" },
         },
+        "rise-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         "modal-in": {
           from: { opacity: "0", transform: "translateY(12px) scale(0.98)" },
           to: { opacity: "1", transform: "translateY(0) scale(1)" },
@@ -45,6 +49,7 @@ const config: Config = {
         shimmer: "shimmer 1.8s linear infinite",
         "spin-slow": "spin 3s linear infinite",
         "modal-in": "modal-in 250ms ease-out both",
+        "rise-in": "rise-in 300ms ease-out both",
       },
       fontFamily: {
         sans: [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ResurrectionCeremony } from "./ceremony";
 import { GhostIcon, SkullIcon, WarningIcon } from "./icons";
 import {
   ERROR_COPY,
@@ -8,44 +8,6 @@ import {
   ResurrectResult,
   isEmptyResult,
 } from "./use-resurrect";
-
-const LOADING_PHRASES = [
-  "Digging up the archive…",
-  "Reading the bones…",
-  "Stitching the fragments…",
-];
-
-// Cycles through LOADING_PHRASES every 1.5s. Mounted only while a request is
-// in flight, so the sequence restarts on each new request.
-function LoadingGhost() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % LOADING_PHRASES.length);
-    }, 1500);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex flex-1 flex-col items-center justify-center py-10 text-center"
-    >
-      <GhostIcon
-        className="h-20 w-20 animate-spin-slow text-ghost/80 motion-reduce:animate-none"
-        strokeWidth={1.25}
-      />
-      <p
-        key={index}
-        className="mt-6 animate-fade-in font-display text-sm tracking-widest text-ghost/80 motion-reduce:animate-none"
-      >
-        {LOADING_PHRASES[index]}
-      </p>
-    </div>
-  );
-}
 
 // Placeholder line for the loading skeleton (pale gray gradient sweep).
 function ShimmerLine({ width }: { width: string }) {
@@ -153,7 +115,7 @@ export function LoadingView() {
               <ShimmerLine width="w-full" />
               <ShimmerLine width="w-3/5" />
             </div>
-            <LoadingGhost />
+            <ResurrectionCeremony />
           </div>
         </section>
       }
@@ -161,15 +123,26 @@ export function LoadingView() {
   );
 }
 
+// Reveal order after the ceremony: title, then headings, then paragraphs,
+// then images, 200ms apart. Staggered by group rather than by item, so a long
+// page doesn't take seconds to appear.
+const REVEAL = "animate-rise-in motion-reduce:animate-none";
+const DELAY = {
+  title: "",
+  headings: "[animation-delay:200ms]",
+  paragraphs: "[animation-delay:400ms]",
+  images: "[animation-delay:600ms]",
+};
+
 export function ResultView({ result }: { result: ResurrectResult }) {
   const empty = isEmptyResult(result);
   const { title, headings, paragraphs, images } = result.extracted;
 
   return (
-    <div className="animate-fade-in motion-reduce:animate-none">
+    <div>
       <TwoColumns
         ghost={
-          <section id="ghost" className="flex scroll-mt-4 flex-col">
+          <section id="ghost" className={`flex scroll-mt-4 flex-col ${REVEAL}`}>
             <ColumnLabel tone="ghost">Ghost</ColumnLabel>
             <TombstoneLink url={result.snapshotUrl} />
           </section>
@@ -179,7 +152,7 @@ export function ResultView({ result }: { result: ResurrectResult }) {
             <ColumnLabel tone="pumpkin">Resurrected</ColumnLabel>
             <article className="rounded-md border border-neutral-800 bg-crypt p-6 font-sans sm:p-8">
               {empty ? (
-                <div className="flex min-h-[18rem] flex-col items-center justify-center text-center">
+                <div className={`flex min-h-[18rem] flex-col items-center justify-center text-center ${REVEAL}`}>
                   <GhostIcon
                     className="h-20 w-20 text-ghost/90 drop-shadow-[0_0_14px_rgba(255,107,26,0.55)]"
                     strokeWidth={1.25}
@@ -198,20 +171,23 @@ export function ResultView({ result }: { result: ResurrectResult }) {
               ) : (
                 <>
                   {title && (
-                    <h4 className="mb-6 font-display text-2xl font-bold leading-tight text-neutral-50 sm:text-3xl">
+                    <h4 className={`${REVEAL} ${DELAY.title} mb-6 font-display text-2xl font-bold leading-tight text-neutral-50 sm:text-3xl`}>
                       {title}
                     </h4>
                   )}
                   {headings.map((heading, i) => (
                     <h5
                       key={`h-${i}`}
-                      className="mb-3 mt-8 font-display text-lg font-semibold text-neutral-100 sm:text-xl"
+                      className={`${REVEAL} ${DELAY.headings} mb-3 mt-8 font-display text-lg font-semibold text-neutral-100 sm:text-xl`}
                     >
                       {heading}
                     </h5>
                   ))}
                   {paragraphs.map((paragraph, i) => (
-                    <p key={`p-${i}`} className="mb-5 text-base leading-7 text-neutral-300">
+                    <p
+                      key={`p-${i}`}
+                      className={`${REVEAL} ${DELAY.paragraphs} mb-5 text-base leading-7 text-neutral-300`}
+                    >
                       {paragraph}
                     </p>
                   ))}
@@ -221,7 +197,7 @@ export function ResultView({ result }: { result: ResurrectResult }) {
                       key={`i-${i}`}
                       src={src}
                       alt=""
-                      className="mb-5 max-w-full rounded-sm border border-pumpkin/60 saturate-50 transition-[filter] duration-300 hover:saturate-100"
+                      className={`${REVEAL} ${DELAY.images} mb-5 max-w-full rounded-sm border border-pumpkin/60 saturate-50 transition-[filter] duration-300 hover:saturate-100`}
                     />
                   ))}
                   <a
@@ -236,7 +212,7 @@ export function ResultView({ result }: { result: ResurrectResult }) {
                         block: "start",
                       });
                     }}
-                    className="mt-6 inline-block font-mono text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
+                    className={`${REVEAL} ${DELAY.images} mt-6 inline-block font-mono text-sm text-ghost underline underline-offset-4 hover:text-pumpkin`}
                   >
                     ← Back to ghost
                   </a>
