@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSnapshot } from "@/lib/wayback";
 import { extractContent } from "@/lib/extract";
+import { THIN_THRESHOLD, qualityScore } from "@/lib/quality";
 
 const SNAPSHOT_TIMEOUT_MS = 10_000;
-const THIN_SNAPSHOT_THRESHOLD = 50;
 const THIN_SNAPSHOT_HINT =
   "This snapshot contains very little readable content. It may be a redirect or error page.";
 
@@ -47,14 +47,8 @@ export async function POST(request: NextRequest) {
     const html = await res.text();
     const { title, headings, paragraphs, images } = extractContent(html);
 
-    const contentLength =
-      title.length +
-      headings.join("").length +
-      paragraphs.join("").length +
-      images.length * 10;
-
     const quality =
-      contentLength < THIN_SNAPSHOT_THRESHOLD
+      qualityScore({ title, headings, paragraphs, images }) < THIN_THRESHOLD
         ? { status: "thin_snapshot" as const, hint: THIN_SNAPSHOT_HINT }
         : { status: "ok" as const };
 

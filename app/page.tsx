@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { DEAD_SITES, DeadSite } from "@/lib/sites";
 import { useCeremonyGate } from "./ceremony";
 import { BatSilhouette, Cobweb, GravestoneIcon } from "./icons";
 import { Modal } from "./modal";
+import { addRecord } from "./resurrection-log";
 import { ErrorAlert, LoadingView, ResultView } from "./results-view";
 import { TombstoneCard } from "./tombstone-card";
 import { useResurrect } from "./use-resurrect";
@@ -25,6 +26,12 @@ export default function Home() {
   const [focused, setFocused] = useState(false);
   const { loading, error, result, resurrect, reset } = useResurrect();
   const ceremonyDone = useCeremonyGate(loading);
+
+  // Every successful resurrection, thin ones included, goes into the /log.
+  // `result` is a new object per response, so this runs once per success.
+  useEffect(() => {
+    if (result) addRecord(result);
+  }, [result]);
   // The ceremony runs for at least CEREMONY_MS, even when the response is
   // faster. Errors skip it and show at once.
   const showCeremony = error === null && (loading || (result !== null && !ceremonyDone));

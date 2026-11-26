@@ -112,6 +112,24 @@ Acceptance criteria:
 7. **Modal behavior.** Modals use the native `<dialog>` with `showModal()`, so focus is trapped and the page behind is inert. Escape, the close button and a backdrop click all close it. Page scroll is locked while open. The progress bar sits under the modal header. Closing a modal, or opening another site, discards any in-flight response.
 8. **Atmosphere.** The cobweb and bat from earlier stay, with a moonlight glow behind the hero and slowly drifting ground fog. Decorative layers are `aria-hidden` and ignore pointer events. Motion is disabled under reduced motion.
 
+### 7. Resurrection log and share links
+
+**User story:** As a returning visitor, I want a record of the sites I've resurrected, so I can revisit them and send one to someone.
+
+Acceptance criteria:
+
+1. **Recording.** Every successful resurrection, thin ones included, is saved to `localStorage` under `afterlife:log`, newest first, capped at 50. Failed requests are not saved. Each record holds `{ url, timestamp, deathYear, qualityScore, shareId }` plus the extracted `result`, so viewing and sharing work without calling Wayback again.
+   - `deathYear` comes from the graveyard list and is `null` for custom URLs not in it.
+   - `qualityScore` uses the same formula as the API (`lib/quality.ts`).
+   - `shareId` is 12 random URL-safe characters.
+   - Stored data is validated on read. Corrupt or unrecognized entries are dropped. If storage is full, the oldest records are dropped to make room.
+2. **Nav.** A nav across the top of every page links "Graveyard" (`/`) and "Log" (`/log`) and marks the current page.
+3. **`/log` timeline.** One entry per resurrection on a vertical timeline. Each entry shows the site name, the resurrection date and time, the death year when known, and a quality badge: Thin below 50, Partial from 50 to 499, Full at 500 or more.
+4. **View.** Opens the stored result in a modal.
+5. **Copy share link.** Copies `<origin>/r/{shareId}` and shows "Copied ✓" for 2 seconds. If the clipboard is unavailable (non-secure origin), it shows the link in a selectable field instead.
+6. **Clear log.** Asks for confirmation in a modal, with "Keep it" focused by default. Confirming removes every record.
+7. **`/r/[shareId]`.** A read-only view of one record: site name, death year, snapshot date, resurrection date, quality badge and the result. An unknown ID shows "This grave is empty" with an explanation.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -129,4 +147,5 @@ Acceptance criteria:
 - The UI empty state uses its own all-fields-empty check. It does not read the API's `status` field.
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
 - The ceremony's "47 snapshots found…" is fixed copy. The API only looks up the closest snapshot and does not count them.
+- Share links only work in the browser that created them, because the log is in that browser's `localStorage` and there is no database. Anyone else who opens one sees "This grave is empty". Clearing the log also breaks them.
 - Wayback snapshot fetches can take over 30 seconds. The route's 10-second timeout then returns 504 for every site until the archive speeds up.

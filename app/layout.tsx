@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Cinzel, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SiteNav } from "./site-nav";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${cinzel.variable} ${jetbrainsMono.variable} bg-crypt antialiased`}
       >
+        <SiteNav />
         {children}
       </body>
     </html>
