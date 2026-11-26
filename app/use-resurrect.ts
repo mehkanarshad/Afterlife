@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import type { DeathVerdict } from "@/lib/post-mortem";
 
 export interface ResurrectResult {
   originalUrl: string;
@@ -12,6 +13,8 @@ export interface ResurrectResult {
     paragraphs: string[];
     images: string[];
   };
+  /** Missing on results logged before the post-mortem existed. */
+  postMortem?: DeathVerdict;
 }
 
 export type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
@@ -68,7 +71,8 @@ export function useResurrect() {
     setResult(null);
   }, []);
 
-  const resurrect = useCallback(async (rawUrl: string) => {
+  /** `timestamp` picks a specific capture; omit it for the most recent one. */
+  const resurrect = useCallback(async (rawUrl: string, timestamp?: string) => {
     const trimmed = rawUrl.trim();
     if (!trimmed) return;
 
@@ -83,7 +87,7 @@ export function useResurrect() {
       res = await fetch("/api/resurrect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
+        body: JSON.stringify(timestamp ? { url: trimmed, timestamp } : { url: trimmed }),
       });
     } catch {
       // fetch only rejects when the request never got a response.

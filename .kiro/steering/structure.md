@@ -15,8 +15,11 @@ Pure utility functions with no framework dependencies. Functions here must be:
 - Importable from both route handlers and Server Components
 
 Current modules:
-- `lib/wayback.ts` — Wayback Machine availability and snapshot URL resolution
+- `lib/wayback.ts` — Wayback Machine availability lookup, exact-capture URLs, and the CDX per-year snapshot list
 - `lib/extract.ts` — HTML content extraction via Cheerio
+- `lib/quality.ts` — quality score and Full / Partial / Thin badge, shared by the API and the UI
+- `lib/post-mortem.ts` — death-cause inference, era labels, CDX response parsing
+- `lib/sites.ts` — the 20 hardcoded dead sites shown in the graveyard
 
 ## Conventions
 

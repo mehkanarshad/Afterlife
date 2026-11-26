@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSnapshot } from "@/lib/wayback";
+import { getSnapshot, snapshotUrlFor } from "@/lib/wayback";
+import { inferDeathCause } from "@/lib/post-mortem";
 import { extractContent } from "@/lib/extract";
 import { THIN_THRESHOLD, qualityScore } from "@/lib/quality";
 
@@ -15,10 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const url =
-    typeof body === "object" && body !== null && "url" in body
-      ? (body as { url: unknown }).url
-      : undefined;
+  const fields = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const url = fields.url;
+  // Optional: resurrect a specific capture (from the post-mortem timeline).
+  const requestedTimestamp = fields.timestamp;
 
   if (typeof url !== "string" || url.trim() === "") {
     return NextResponse.json(
@@ -27,8 +28,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (
+    requestedTimestamp !== undefined &&
+    (typeof requestedTimestamp !== "string" || !/^\d{4,14}$/.test(requestedTimestamp))
+  ) {
+    return NextResponse.json(
+      { error: "timestamp must be a Wayback timestamp of 4 to 14 digits" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const snapshot = await getSnapshot(url);
+    const snapshot =
+      typeof requestedTimestamp === "string"
+        ? {
+            snapshotUrl: snapshotUrlFor(url, requestedTimestamp),
+            timestamp: requestedTimestamp,
+            archivedStatus: null,
+          }
+        : await getSnapshot(url);
     if (!snapshot) {
       return NextResponse.json({ error: "No snapshot found" }, { status: 404 });
     }
@@ -37,7 +55,12 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS),
     });
 
-    if (!res.ok) {
+    // A replayed capture carries Memento-Datetime. If it's present, a 404 or
+    // 5xx is the dead site's own recorded response, not a Wayback failure.
+    const archivedResponse = res.headers.has("memento-datetime");
+    const archivedStatus = archivedResponse ? res.status : snapshot.archivedStatus;
+
+    if (!res.ok && !archivedResponse) {
       return NextResponse.json(
         { error: `Snapshot fetch failed with status ${res.status}` },
         { status: 502 }
@@ -46,17 +69,21 @@ export async function POST(request: NextRequest) {
 
     const html = await res.text();
     const { title, headings, paragraphs, images } = extractContent(html);
+    const thin = qualityScore({ title, headings, paragraphs, images }) < THIN_THRESHOLD;
 
-    const quality =
-      qualityScore({ title, headings, paragraphs, images }) < THIN_THRESHOLD
-        ? { status: "thin_snapshot" as const, hint: THIN_SNAPSHOT_HINT }
-        : { status: "ok" as const };
+    const quality = thin
+      ? { status: "thin_snapshot" as const, hint: THIN_SNAPSHOT_HINT }
+      : { status: "ok" as const };
+
+    // After redirects, the final replay URL names the capture actually served.
+    const servedTimestamp = /\/web\/(\d{14})/.exec(res.url)?.[1] ?? snapshot.timestamp;
 
     return NextResponse.json({
       originalUrl: url,
-      snapshotTimestamp: snapshot.timestamp,
-      snapshotUrl: snapshot.snapshotUrl,
+      snapshotTimestamp: servedTimestamp,
+      snapshotUrl: res.url ? res.url.replace(/^http:\/\//, "https://") : snapshot.snapshotUrl,
       extracted: { title, headings, paragraphs, images },
+      postMortem: inferDeathCause({ archivedStatus, html, thin }),
       ...quality,
     });
   } catch (err) {

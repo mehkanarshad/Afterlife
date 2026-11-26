@@ -26,6 +26,12 @@ function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
+function isVerdict(v: unknown): boolean {
+  if (typeof v !== "object" || v === null) return false;
+  const p = v as Record<string, unknown>;
+  return typeof p.cause === "string" && typeof p.evidence === "string";
+}
+
 // localStorage is user-editable and may hold data from an older version, so
 // every record is checked before use. Invalid entries are dropped.
 function isRecord(v: unknown): v is ResurrectionRecord {
@@ -44,6 +50,7 @@ function isRecord(v: unknown): v is ResurrectionRecord {
     result !== null &&
     typeof result.snapshotUrl === "string" &&
     typeof result.snapshotTimestamp === "string" &&
+    (result.postMortem === undefined || isVerdict(result.postMortem)) &&
     typeof extracted === "object" &&
     extracted !== null &&
     typeof extracted.title === "string" &&

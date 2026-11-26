@@ -130,6 +130,28 @@ Acceptance criteria:
 6. **Clear log.** Asks for confirmation in a modal, with "Keep it" focused by default. Confirming removes every record.
 7. **`/r/[shareId]`.** A read-only view of one record: site name, death year, snapshot date, resurrection date, quality badge and the result. An unknown ID shows "This grave is empty" with an explanation.
 
+### 8. Post-Mortem Report
+
+**User story:** As a visitor, I want to know how a site died and what else the archive holds, so I can dig up a better year.
+
+Acceptance criteria:
+
+1. **Placement.** A collapsible parchment "Post-Mortem Report" (native `<details>`) sits below the two-column comparison wherever a result is shown. It is collapsed by default, and its header always shows the key findings: cause, quality and era.
+2. **Death cause (inferred).** `/api/resurrect` returns `postMortem: { cause, evidence }`, computed by `inferDeathCause` in `lib/post-mortem.ts`. Rules, strongest first:
+   - Archived HTTP 404 or 410 → "404".
+   - Archived HTTP 5xx → "Server gone".
+   - Parking or registrar text, e.g. "This domain is for sale" → "Domain expired".
+   - A meta refresh, an archived 3xx, or a script redirect on a thin page → "Redirect stub".
+   - Otherwise "Undetermined".
+   The UI labels the cause "(inferred)" and shows the evidence sentence. When Wayback replays an archived 404 or 5xx, which it marks with a `Memento-Datetime` header, the route treats it as the site's own response instead of a fetch failure.
+3. **Snapshot quality.** Full, Partial or Thin from the existing quality score, with the score shown.
+4. **Era detected.** From the snapshot timestamp's year: 90s, 2000s, 2010s or 2020s.
+5. **Available snapshots.** Opening the report calls `GET /api/snapshots?url=`. That route queries the Wayback CDX API server-side for one HTTP-200 capture per year, with a 15-second timeout, returning 504 on timeout and 502 on other failures. The list is cached for the session.
+   - In the home page modals, each year resurrects that exact capture: `POST /api/resurrect` with `{ url, timestamp }`, which runs the ceremony again. The year being shown is marked and disabled.
+   - In read-only views (the log modal and `/r/[shareId]`), each year opens the capture on the Wayback Machine instead.
+   - A failed lookup shows a message with "Try again".
+6. **Older log records** without `postMortem` show "Not recorded for this resurrection". A malformed `postMortem` in storage causes the record to be dropped.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -148,4 +170,6 @@ Acceptance criteria:
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
 - The ceremony's "47 snapshots found…" is fixed copy. The API only looks up the closest snapshot and does not count them.
 - Share links only work in the browser that created them, because the log is in that browser's `localStorage` and there is no database. Anyone else who opens one sees "This grave is empty". Clearing the log also breaks them.
+- Death cause is a heuristic over a single capture. It can't see DNS or registrar history, so "Domain expired" is only detected from parking-page text, and many dead sites come back "Undetermined" because their last capture still looks alive.
+- The CDX lookup can take 10+ seconds when Wayback is busy, and it lists only HTTP-200 captures, so years where every capture was an error or redirect don't appear.
 - Wayback snapshot fetches can take over 30 seconds. The route's 10-second timeout then returns 504 for every site until the archive speeds up.

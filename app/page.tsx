@@ -70,7 +70,12 @@ export default function Home() {
     <>
       {error && <ErrorAlert kind={error} />}
       {showCeremony && <LoadingView />}
-      {result && ceremonyDone && <ResultView result={result} />}
+      {result && ceremonyDone && (
+        <ResultView
+          result={result}
+          onResurrectSnapshot={(timestamp) => void resurrect(result.originalUrl, timestamp)}
+        />
+      )}
     </>
   );
 

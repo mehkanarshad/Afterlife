@@ -2,6 +2,7 @@
 
 import { ResurrectionCeremony } from "./ceremony";
 import { GhostIcon, SkullIcon, WarningIcon } from "./icons";
+import { PostMortemReport } from "./post-mortem-report";
 import {
   ERROR_COPY,
   ErrorKind,
@@ -134,7 +135,14 @@ const DELAY = {
   images: "[animation-delay:600ms]",
 };
 
-export function ResultView({ result }: { result: ResurrectResult }) {
+export function ResultView({
+  result,
+  onResurrectSnapshot,
+}: {
+  result: ResurrectResult;
+  /** Lets the post-mortem's year list resurrect a capture. Omit for read-only views. */
+  onResurrectSnapshot?: (timestamp: string) => void;
+}) {
   const empty = isEmptyResult(result);
   const { title, headings, paragraphs, images } = result.extracted;
 
@@ -222,6 +230,7 @@ export function ResultView({ result }: { result: ResurrectResult }) {
           </section>
         }
       />
+      <PostMortemReport result={result} onResurrectSnapshot={onResurrectSnapshot} />
     </div>
   );
 }
