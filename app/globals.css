@@ -45,3 +45,42 @@ body::before {
   background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC44NScgbnVtT2N0YXZlcz0nMycgc3RpdGNoVGlsZXM9J3N0aXRjaCcvPjxmZUNvbG9yTWF0cml4IHR5cGU9J3NhdHVyYXRlJyB2YWx1ZXM9JzAnLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWx0ZXI9J3VybCgjbiknLz48L3N2Zz4=");
   background-size: 160px 160px;
 }
+
+/* Weathered stone: cool gray slab, lighter at the top where moonlight hits,
+   with faint mottling. The .noise-overlay inside each card adds grain. */
+.stone {
+  background-color: #1b1b22;
+  background-image:
+    radial-gradient(ellipse 120% 70% at 50% 0%, rgba(220, 225, 240, 0.07), transparent 60%),
+    radial-gradient(circle at 20% 70%, rgba(0, 0, 0, 0.35), transparent 40%),
+    radial-gradient(circle at 80% 40%, rgba(0, 0, 0, 0.25), transparent 35%),
+    linear-gradient(180deg, #23232c 0%, #18181f 60%, #121218 100%);
+}
+
+/* Cold moon glow behind the hero. */
+.moonlight {
+  background: radial-gradient(
+    ellipse 50% 60% at 50% 0%,
+    rgba(168, 230, 207, 0.08),
+    rgba(168, 230, 207, 0.02) 45%,
+    transparent 70%
+  );
+}
+
+/* Low ground fog drifting across the cemetery. */
+.ground-fog {
+  background:
+    radial-gradient(ellipse 60% 100% at 20% 100%, rgba(200, 210, 225, 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 100% at 75% 100%, rgba(168, 230, 207, 0.05), transparent 70%);
+  background-size: 200% 100%;
+  animation: fog-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift {
+  from { background-position: 0% 100%; }
+  to { background-position: 100% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ground-fog { animation: none; }
+}

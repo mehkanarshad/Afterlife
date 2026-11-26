@@ -1,591 +1,188 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-
-interface ResurrectResult {
-  originalUrl: string;
-  snapshotTimestamp: string;
-  snapshotUrl: string;
-  extracted: {
-    title: string;
-    headings: string[];
-    paragraphs: string[];
-    images: string[];
-  };
-}
-
-type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
-
-// Each error has a headline (shown in white) and a hint (muted).
-const ERROR_COPY: Record<ErrorKind, { message: string; hint: string }> = {
-  not_found: {
-    message: "No archive exists for this URL.",
-    hint: "It may never have been crawled, or the URL is misspelled.",
-  },
-  timeout: {
-    message: "Wayback Machine took too long to respond.",
-    hint: "Try again in a moment.",
-  },
-  network: {
-    message: "Couldn't reach the archive.",
-    hint: "Check your connection.",
-  },
-  unknown: {
-    message: "Something went wrong while digging.",
-    hint: "Try a different URL.",
-  },
-};
-
-function errorKindFromStatus(status: number): ErrorKind {
-  if (status === 404) return "not_found";
-  if (status === 504) return "timeout";
-  return "unknown";
-}
-
-function WarningIcon({ className }: { className: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-      <path d="M12 9v4M12 17h.01" />
-    </svg>
-  );
-}
-
-function Cobweb() {
-  return (
-    <svg
-      viewBox="0 0 200 200"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1"
-      strokeLinecap="round"
-      className="pointer-events-none absolute right-0 top-0 z-0 h-40 w-40 text-ghost opacity-[0.12] sm:h-64 sm:w-64"
-      aria-hidden="true"
-    >
-      {/* radial threads from the top-right corner */}
-      <path d="M200 0L0 0M200 0L0 40M200 0L0 90M200 0L30 170M200 0L90 200M200 0L150 200M200 0L200 200" />
-      {/* sagging concentric strands */}
-      <path d="M170 0Q165 28 200 30" />
-      <path d="M130 0Q125 55 200 60" />
-      <path d="M85 0Q80 85 200 95" />
-      <path d="M40 0Q40 125 200 135" />
-      <path d="M0 40Q10 160 130 200" />
-    </svg>
-  );
-}
-
-function BatSilhouette() {
-  return (
-    <svg
-      viewBox="0 0 120 60"
-      fill="currentColor"
-      className="pointer-events-none fixed bottom-4 left-4 z-0 h-16 w-32 text-pumpkin opacity-[0.07] sm:h-24 sm:w-48"
-      aria-hidden="true"
-    >
-      <path d="M60 18c-3 0-5 3-6 6-4-3-9-6-16-6C28 18 18 10 4 6c4 8 5 16 4 22 6-3 12-3 17 0-2 4-2 8 0 12 5-4 10-5 16-3 3 3 6 11 19 17 13-6 16-14 19-17 6-2 11-1 16 3 2-4 2-8 0-12 5-3 11-3 17 0-1-6 0-14 4-22-14 4-24 12-34 12-7 0-12 3-16 6-1-3-3-6-6-6z" />
-    </svg>
-  );
-}
-
-const LOADING_PHRASES = [
-  "Digging up the archive…",
-  "Reading the bones…",
-  "Stitching the fragments…",
-];
-
-// Cycles through LOADING_PHRASES every 1.5s. Mounted only while a request is
-// in flight, so the sequence restarts on each new request.
-function LoadingGhost() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % LOADING_PHRASES.length);
-    }, 1500);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex flex-1 flex-col items-center justify-center text-center"
-    >
-      <GhostIcon
-        className="h-20 w-20 animate-spin-slow text-ghost/80 motion-reduce:animate-none"
-        strokeWidth={1.25}
-      />
-      <p
-        key={index}
-        className="mt-6 animate-fade-in font-display text-sm tracking-widest text-ghost/80 motion-reduce:animate-none"
-      >
-        {LOADING_PHRASES[index]}
-      </p>
-    </div>
-  );
-}
-
-const GHOST_PATH =
-  "M12 3a7 7 0 0 0-7 7v10l2.33-2 2.34 2 2.33-2 2.33 2 2.34-2L19 20V10a7 7 0 0 0-7-7z";
-
-function GhostIcon({
-  className,
-  strokeWidth = 1.5,
-}: {
-  className: string;
-  strokeWidth?: number;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d={GHOST_PATH} />
-      <circle cx="9.5" cy="10" r="1" fill="currentColor" />
-      <circle cx="14.5" cy="10" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SkullIcon({ className }: { className: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 3C7.6 3 5 6 5 9.8c0 2.2 1 3.7 2.5 4.7V18h9v-3.5c1.5-1 2.5-2.5 2.5-4.7C19 6 16.4 3 12 3z" />
-      <circle cx="9" cy="10.5" r="1.4" fill="currentColor" />
-      <circle cx="15" cy="10.5" r="1.4" fill="currentColor" />
-      <path d="M12 13l-1 2h2zM10 18v2.5M12 18v2.5M14 18v2.5" />
-    </svg>
-  );
-}
-
-function GravestoneIcon({ className }: { className: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 28"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M5 25V11a7 7 0 0 1 14 0v14z" />
-      <path d="M12 9v8M9 12h6" />
-      <path d="M2 25h20" />
-    </svg>
-  );
-}
-
-// Placeholder line for the loading skeleton (pale gray gradient sweep).
-function ShimmerLine({ width }: { width: string }) {
-  return (
-    <div
-      className={`h-4 animate-shimmer rounded bg-[linear-gradient(90deg,rgba(200,200,210,0.05)_0%,rgba(200,200,210,0.18)_50%,rgba(200,200,210,0.05)_100%)] bg-[length:200%_100%] motion-reduce:animate-none ${width}`}
-    />
-  );
-}
-
-// The snapshot link, styled as a tombstone card.
-function TombstoneLink({ url }: { url: string }) {
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group relative block overflow-hidden rounded-b-md rounded-t-[2rem] border border-neutral-700/80 bg-tomb px-6 pb-6 pt-7 font-mono transition-[border-color,box-shadow] hover:border-pumpkin/60 hover:shadow-[0_0_24px_rgba(255,107,26,0.12)] focus-visible:border-pumpkin focus-visible:outline-none"
-    >
-      <span className="noise-overlay" aria-hidden="true" />
-      <SkullIcon className="relative h-8 w-8 text-neutral-500 transition-colors group-hover:text-ghost" />
-      <p className="relative mt-4 truncate text-xs text-neutral-400" title={url}>
-        {url}
-      </p>
-      <span className="relative mt-4 inline-block text-sm text-pumpkin">
-        View original snapshot →
-      </span>
-    </a>
-  );
-}
-
-// Horizontal on mobile (between the stacked columns), vertical from md up.
-function ColumnDivider() {
-  const line =
-    "flex-1 bg-gradient-to-r from-transparent via-neutral-700 to-transparent h-px md:h-auto md:w-px md:bg-gradient-to-b";
-  return (
-    <div
-      className="flex items-center justify-center gap-3 md:flex-col"
-      aria-hidden="true"
-    >
-      <span className={line} />
-      <GhostIcon className="h-5 w-5 shrink-0 text-ghost/60" />
-      <span className={line} />
-    </div>
-  );
-}
-
-function ResultsLayout({
-  ghost,
-  resurrected,
-  className = "",
-  id,
-}: {
-  ghost: React.ReactNode;
-  resurrected: React.ReactNode;
-  className?: string;
-  id?: string;
-}) {
-  return (
-    <div
-      id={id}
-      className={`relative z-10 mx-auto mt-10 grid w-full max-w-7xl scroll-mt-6 grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] ${className}`}
-    >
-      {ghost}
-      <ColumnDivider />
-      {resurrected}
-    </div>
-  );
-}
-
-function scrollToGhost() {
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document
-    .getElementById("ghost")
-    ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-}
+import { FormEvent, useState } from "react";
+import { DEAD_SITES, DeadSite } from "@/lib/sites";
+import { BatSilhouette, Cobweb, GravestoneIcon } from "./icons";
+import { Modal } from "./modal";
+import { ErrorAlert, LoadingView, ResultView } from "./results-view";
+import { TombstoneCard } from "./tombstone-card";
+import { useResurrect } from "./use-resurrect";
 
 const HAS_PROTOCOL = /^[a-z][a-z0-9+.-]*:\/\//i;
-const EXAMPLES = ["geocities.com", "altavista.com", "myspace.com/tom"];
+
+const primaryButton =
+  "rounded-md bg-gradient-to-b from-[#ff8a3d] to-pumpkin px-5 py-2 font-mono text-sm font-semibold text-black shadow-[0_0_10px_1px_rgba(255,107,26,0.25)] transition-[box-shadow,transform,opacity] duration-100 hover:shadow-[0_0_28px_8px_rgba(255,107,26,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pumpkin focus-visible:ring-offset-2 focus-visible:ring-offset-tomb active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:active:scale-100";
+
+const secondaryButton =
+  "rounded-md border border-neutral-700 px-5 py-2 font-mono text-sm text-neutral-300 transition-colors hover:border-ghost/60 hover:text-ghost focus-visible:border-ghost focus-visible:outline-none";
+
+type ModalState = { kind: "closed" } | { kind: "site"; site: DeadSite } | { kind: "bury" };
 
 export default function Home() {
+  const [modal, setModal] = useState<ModalState>({ kind: "closed" });
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ErrorKind | null>(null);
-  const [result, setResult] = useState<ResurrectResult | null>(null);
-  const [barPhase, setBarPhase] = useState<"idle" | "running" | "done">("idle");
   const [focused, setFocused] = useState(false);
+  const { loading, error, result, resurrect, reset } = useResurrect();
 
-  // The helper text is visible while the input has focus or holds a value.
-  const helperVisible = focused || url.trim() !== "";
+  // The confirm step is shown until the first request for this site starts.
+  const started = loading || error !== null || result !== null;
+  const showingResults = loading || result !== null;
 
-  // Scroll the results into view as soon as they appear.
-  useEffect(() => {
-    if (!result) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document
-      .getElementById("results")
-      ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-  }, [result]);
+  function openSite(site: DeadSite) {
+    reset();
+    setModal({ kind: "site", site });
+  }
 
-  // Top progress bar: creeps toward 90% while loading, then fills and fades.
-  useEffect(() => {
-    if (loading) {
-      setBarPhase("running");
-      return;
-    }
-    setBarPhase((phase) => (phase === "running" ? "done" : phase));
-    const id = setTimeout(
-      () => setBarPhase((phase) => (phase === "done" ? "idle" : phase)),
-      500
-    );
-    return () => clearTimeout(id);
-  }, [loading]);
+  function openBury() {
+    reset();
+    setModal({ kind: "bury" });
+  }
+
+  function close() {
+    reset();
+    setModal({ kind: "closed" });
+  }
 
   function handleBlur() {
     setFocused(false);
     const trimmed = url.trim();
-    if (trimmed && !HAS_PROTOCOL.test(trimmed)) {
-      setUrl(`https://${trimmed}`);
-    }
+    if (trimmed && !HAS_PROTOCOL.test(trimmed)) setUrl(`https://${trimmed}`);
   }
 
-  function handleExampleClick(example: string) {
-    if (loading) return;
-    setUrl(example);
-    void resurrect(example);
-  }
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  function handleBury(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     void resurrect(url);
   }
 
-  async function resurrect(rawUrl: string) {
-    const trimmed = rawUrl.trim();
-    if (!trimmed) return;
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
-    let res: Response;
-    try {
-      res = await fetch("/api/resurrect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
-      });
-    } catch {
-      // fetch only rejects when the request never got a response.
-      setError("network");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (!res.ok) {
-        setError(errorKindFromStatus(res.status));
-        return;
-      }
-      setResult((await res.json()) as ResurrectResult);
-    } catch {
-      // A 200 with an unparseable body.
-      setError("unknown");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const isEmpty =
-    result !== null &&
-    result.extracted.title === "" &&
-    result.extracted.headings.length === 0 &&
-    result.extracted.paragraphs.length === 0 &&
-    result.extracted.images.length === 0;
+  const outcome = (
+    <>
+      {error && <ErrorAlert kind={error} />}
+      {loading && <LoadingView />}
+      {result && <ResultView result={result} />}
+    </>
+  );
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-crypt px-6 py-12 font-mono text-neutral-200">
-      {barPhase !== "idle" && (
-        <div
-          className="pointer-events-none fixed left-0 top-0 z-50 h-0.5 w-full"
-          aria-hidden="true"
-        >
-          <div
-            className={`h-full bg-pumpkin shadow-[0_0_10px_rgba(255,107,26,0.8)] ${
-              barPhase === "running"
-                ? "animate-progress motion-reduce:animate-none"
-                : "w-full opacity-0 transition-opacity duration-500"
-            }`}
-          />
-        </div>
-      )}
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-crypt px-6 pb-12 font-mono text-neutral-200">
+      <div className="moonlight pointer-events-none absolute inset-x-0 top-0 z-0 h-[36rem]" aria-hidden="true" />
+      <div className="ground-fog pointer-events-none fixed inset-x-0 bottom-0 z-0 h-64" aria-hidden="true" />
       <Cobweb />
       <BatSilhouette />
-      <div className="relative z-10 mx-auto w-full max-w-md text-center">
-        <h1 className="animate-flicker font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.35)] motion-reduce:animate-none sm:text-6xl">
-          Afterlife
+
+      <header className="relative z-10 mx-auto w-full max-w-2xl pb-14 pt-16 text-center sm:pt-24">
+        <h1 className="animate-flicker font-display text-5xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_28px_rgba(255,107,26,0.35)] motion-reduce:animate-none sm:text-7xl">
+          The Afterlife
         </h1>
-        <p className="mt-2 font-display text-sm tracking-[0.25em] text-ghost/80">
-          Resurrect the dead web.
+        <p className="mx-auto mt-5 max-w-md font-display text-base leading-relaxed tracking-wide text-ghost/80 sm:text-lg">
+          A graveyard of the dead web. Resurrect what&apos;s lost.
         </p>
-        <form onSubmit={handleSubmit} className="mt-8 flex gap-2">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={handleBlur}
-            aria-describedby="url-helper"
-            placeholder="Enter a dead website URL, e.g. geocities.com"
-            aria-label="Website URL"
-            className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-tomb px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60"
-          />
-          <button
-            type="submit"
-            disabled={loading || url.trim() === ""}
-            className="rounded-md bg-gradient-to-b from-[#ff8a3d] to-pumpkin px-4 py-2 text-sm font-semibold text-black shadow-[0_0_10px_1px_rgba(255,107,26,0.25)] transition-[box-shadow,transform,opacity] duration-100 hover:shadow-[0_0_28px_8px_rgba(255,107,26,0.6)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:shadow-none disabled:active:scale-100"
-          >
-            {loading ? "Digging…" : "Resurrect"}
-          </button>
-        </form>
+        <button type="button" onClick={openBury} className={`mt-10 ${primaryButton}`}>
+          Bury a new site
+        </button>
+      </header>
 
-        <p
-          id="url-helper"
-          className={`mt-3 text-xs text-neutral-500 transition-opacity duration-300 motion-reduce:transition-none ${
-            helperVisible ? "opacity-100" : "opacity-0"
-          }`}
+      <section aria-labelledby="graveyard-heading" className="relative z-10 mx-auto w-full max-w-6xl">
+        <h2
+          id="graveyard-heading"
+          className="mb-10 text-center text-sm uppercase tracking-[0.3em] text-neutral-500 [font-variant-caps:all-small-caps]"
         >
-          We&apos;ll look up the most recent Wayback Machine snapshot.
-        </p>
-
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => handleExampleClick(example)}
-              disabled={loading}
-              className="group inline-flex items-center gap-1.5 rounded-b-sm rounded-t-xl border border-neutral-800 bg-tomb px-3 py-1.5 font-mono text-xs text-ghost/80 transition-colors hover:border-pumpkin hover:text-pumpkin focus-visible:border-pumpkin focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-neutral-800 disabled:hover:text-ghost/80"
-            >
-              <SkullIcon className="h-3.5 w-3.5 shrink-0 text-neutral-500 transition-colors group-hover:text-pumpkin" />
-              {example}
-            </button>
+          Here lie {DEAD_SITES.length} sites of the old web
+        </h2>
+        <ul className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
+          {DEAD_SITES.map((site, i) => (
+            <TombstoneCard key={site.domain} site={site} index={i} onSelect={openSite} />
           ))}
-        </div>
+        </ul>
+      </section>
 
-        {error && (
-          <div
-            role="alert"
-            className="mt-4 flex items-start gap-3 rounded-md border border-pumpkin/40 border-l-4 border-l-pumpkin bg-tomb px-4 py-3 text-left"
-          >
-            <WarningIcon className="mt-0.5 h-5 w-5 shrink-0 text-pumpkin" />
-            <div>
-              <p className="text-sm text-white">{ERROR_COPY[error].message}</p>
-              <p className="mt-1 text-xs text-neutral-400">
-                {ERROR_COPY[error].hint}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {loading && (
-        <ResultsLayout
-          ghost={
-            <section id="ghost" className="flex scroll-mt-6 flex-col font-mono">
-              <h2 className="mb-2 text-sm uppercase tracking-widest text-ghost [font-variant-caps:all-small-caps]">
-                Ghost
-              </h2>
-              <div
-                className="h-32 animate-pulse rounded-b-md rounded-t-[2rem] border border-neutral-800 bg-tomb motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            </section>
-          }
-          resurrected={
-            <section className="flex flex-col font-mono">
-              <h2 className="mb-2 text-sm uppercase tracking-widest text-pumpkin [font-variant-caps:all-small-caps]">
-                Resurrected
-              </h2>
-              <article className="flex h-[24rem] flex-col overflow-hidden rounded-md border border-neutral-800 bg-tomb p-8 md:h-[75vh] md:p-10">
-                <div className="space-y-4" aria-hidden="true">
-                  <ShimmerLine width="w-3/4" />
-                  <ShimmerLine width="w-full" />
-                  <ShimmerLine width="w-3/5" />
-                </div>
-                <LoadingGhost />
-              </article>
-            </section>
-          }
-        />
-      )}
-
-      {result && (
-        <ResultsLayout
-          id="results"
-          className="animate-fade-in motion-reduce:animate-none"
-          ghost={
-            <section id="ghost" className="flex scroll-mt-6 flex-col font-mono">
-              <h2 className="mb-2 text-sm uppercase tracking-widest text-ghost [font-variant-caps:all-small-caps]">
-                Ghost
-              </h2>
-              <TombstoneLink url={result.snapshotUrl} />
-            </section>
-          }
-          resurrected={
-            <section className="flex flex-col font-mono">
-              <h2 className="mb-2 text-sm uppercase tracking-widest text-pumpkin [font-variant-caps:all-small-caps]">
-                Resurrected
-              </h2>
-              <article className="overflow-auto rounded-md border border-neutral-800 bg-tomb p-8 font-sans md:h-[75vh] md:p-10">
-                {isEmpty ? (
-                  <div className="flex min-h-[20rem] flex-col items-center justify-center text-center md:h-full">
-                    <GhostIcon
-                      className="h-20 w-20 text-ghost/90 drop-shadow-[0_0_14px_rgba(255,107,26,0.55)]"
-                      strokeWidth={1.25}
-                    />
-                    <p className="mt-6 text-base text-ghost">
-                      Nothing readable survived in this snapshot.
-                    </p>
-                    <p className="mt-2 max-w-sm text-sm text-neutral-500">
-                      The archive only captured a redirect stub. Try another URL,
-                      or view the original snapshot below.
-                    </p>
-                    <div className="mt-8 w-full max-w-sm text-left">
-                      <TombstoneLink url={result.snapshotUrl} />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {result.extracted.title && (
-                      <h1 className="mb-6 font-display text-3xl font-bold leading-tight text-neutral-50">
-                        {result.extracted.title}
-                      </h1>
-                    )}
-                    {result.extracted.headings.map((heading, i) => (
-                      <h2
-                        key={`h-${i}`}
-                        className="mb-3 mt-8 font-display text-xl font-semibold text-neutral-100"
-                      >
-                        {heading}
-                      </h2>
-                    ))}
-                    {result.extracted.paragraphs.map((paragraph, i) => (
-                      <p
-                        key={`p-${i}`}
-                        className="mb-5 text-base leading-7 text-neutral-300"
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-                    {result.extracted.images.map((src, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={`i-${i}`}
-                        src={src}
-                        alt=""
-                        className="mb-5 max-w-full rounded-sm border border-pumpkin/60 saturate-50 transition-[filter] duration-300 hover:saturate-100"
-                      />
-                    ))}
-                    <a
-                      href="#ghost"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToGhost();
-                      }}
-                      className="mt-6 inline-block font-mono text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
-                    >
-                      ← Back to ghost
-                    </a>
-                  </>
-                )}
-              </article>
-            </section>
-          }
-        />
-      )}
-
-      <footer className="relative z-10 mt-auto flex flex-col items-center gap-2 pt-16 text-xs text-neutral-500">
+      <footer className="relative z-10 mt-auto flex flex-col items-center gap-2 pt-20 text-xs text-neutral-500">
         <GravestoneIcon className="h-8 w-8 text-neutral-600" />
         <p>Built for Kiroween 2026 🎃</p>
       </footer>
+
+      <Modal
+        open={modal.kind === "site"}
+        onClose={close}
+        title={modal.kind === "site" ? `Resurrect ${modal.site.domain}?` : ""}
+        wide={showingResults}
+        busy={loading}
+      >
+        {modal.kind === "site" && (
+          <div className="space-y-6">
+            {!started && (
+              <>
+                <p className="text-sm leading-relaxed text-neutral-400">
+                  {modal.site.name} was laid to rest in {modal.site.diedYear}. We&apos;ll dig up
+                  its most recent Wayback Machine snapshot and bring back whatever is still
+                  readable.
+                </p>
+                <div className="flex flex-wrap justify-end gap-3">
+                  <button type="button" onClick={close} className={secondaryButton}>
+                    Let it rest
+                  </button>
+                  <button
+                    type="button"
+                    data-autofocus
+                    onClick={() => void resurrect(modal.site.domain)}
+                    className={primaryButton}
+                  >
+                    Resurrect
+                  </button>
+                </div>
+              </>
+            )}
+            {outcome}
+            {error && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void resurrect(modal.site.domain)}
+                  className={secondaryButton}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={modal.kind === "bury"}
+        onClose={close}
+        title="Bury a new site"
+        wide={showingResults}
+        busy={loading}
+      >
+        <div className="space-y-6">
+          <form onSubmit={handleBury} className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              data-autofocus
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={handleBlur}
+              aria-label="Website URL"
+              aria-describedby="url-helper"
+              placeholder="Enter a dead website URL, e.g. geocities.com"
+              className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-crypt px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60"
+            />
+            <button type="submit" disabled={loading || url.trim() === ""} className={primaryButton}>
+              {loading ? "Digging…" : "Resurrect"}
+            </button>
+          </form>
+          <p
+            id="url-helper"
+            className={`-mt-3 text-xs text-neutral-500 transition-opacity duration-300 motion-reduce:transition-none ${
+              focused || url.trim() !== "" ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            We&apos;ll look up the most recent Wayback Machine snapshot.
+          </p>
+          {outcome}
+        </div>
+      </Modal>
     </main>
   );
 }

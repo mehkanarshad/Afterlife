@@ -55,11 +55,11 @@ Acceptance criteria:
 **User story:** As a user, I want to see the resurrected content in a clean layout and still reach the original snapshot.
 
 Acceptance criteria:
-1. `app/page.tsx` shows a centered URL input and a "Resurrect" button, on a dark background.
-2. Submitting calls `POST /api/resurrect` with the entered URL.
-3. A loading spinner shows while the request is pending.
-4. On error, an alert card appears below the input. See requirement 5.4.
-5. On success, two columns appear side by side on medium screens and wider, and stack on narrow screens.
+1. Results are shown inside a modal, opened from the graveyard grid or from "Bury a new site". See requirement 6.
+2. Each request calls `POST /api/resurrect` with the site's domain or the entered URL.
+3. A loading skeleton shows while the request is pending. See requirement 5.6.
+4. On error, an alert card appears in the modal. See requirement 5.4.
+5. On success, two columns appear side by side on medium screens and wider, separated by a divider with a small ghost icon, and stack on narrow screens with Ghost on top.
 6. The left column is labeled "Ghost", uses a monospace font, and shows a "View original snapshot" link to `snapshotUrl`. The link opens in a new tab. An iframe is not used, because the Wayback Machine snapshot would not load in it.
 7. The right column is labeled "Resurrected", uses a sans-serif font, and renders the title as `<h1>`, headings as `<h2>`, paragraphs as `<p>`, and images as `<img>` with `max-width: 100%`.
 
@@ -69,13 +69,13 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-1. **Example chips for guided entry.** Below the input, clickable chips show `geocities.com`, `altavista.com` and `myspace.com/tom`. Clicking a chip fills the input and submits it. The chips are disabled while a request is in flight. The input placeholder reads "Enter a dead website URL, e.g. geocities.com", and helper text below it reads "We'll look up the most recent Wayback Machine snapshot."
-2. **Automatic `https://` prefixing.** When the input loses focus, and it is non-empty with no `scheme://`, `https://` is prepended. Chip values are submitted as shown, with no prefix added. While a request is in flight, the Resurrect button is disabled and reads "Digging…".
+1. **Guided entry.** The graveyard grid (requirement 6) replaces the earlier example chips: every tombstone is a working one-click path. In the "Bury a new site" modal, the input placeholder reads "Enter a dead website URL, e.g. geocities.com", and helper text below it reads "We'll look up the most recent Wayback Machine snapshot." The helper text fades in on focus and fades out when an empty input loses focus.
+2. **Automatic `https://` prefixing.** When the "Bury a new site" input loses focus, and it is non-empty with no `scheme://`, `https://` is prepended. Grid sites are submitted as bare domains. While a request is in flight, the submit button is disabled and reads "Digging…".
 3. **Thin-snapshot detection.** After extraction, the API computes a quality score: `title.length + headings.join("").length + paragraphs.join("").length + images.length * 10`.
    - Below 50, the response includes `"status": "thin_snapshot"` and `"hint": "This snapshot contains very little readable content. It may be a redirect or error page."`
    - At 50 or more, the response includes `"status": "ok"` and no `hint`.
    - This is metadata only. The HTTP status code stays 200.
-4. **Contextual error messages.** Each error appears as an alert card below the input and above the results. The card has a dark background, a 1px orange border with a 4px orange left border, and an orange warning icon. The headline is white and the hint is muted gray. The copy is chosen from the HTTP status:
+4. **Contextual error messages.** Each error appears as an alert card in the modal, with a "Try again" button for grid sites. The card has a dark background, a 1px orange border with a 4px orange left border, and an orange warning icon. The headline is white and the hint is muted gray. The copy is chosen from the HTTP status:
 
    | Condition | Headline | Hint |
    |---|---|---|
@@ -92,6 +92,21 @@ Acceptance criteria:
 
 6. **Loading skeleton.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines (a pale gray gradient sweep) above the rotating ghost and the cycling status text.
 
+### 6. Graveyard grid
+
+**User story:** As a visitor, I want to browse famous dead sites like a cemetery and resurrect one with a click, and still be able to try any URL.
+
+Acceptance criteria:
+
+1. **Hero.** "The Afterlife" in the display serif (Cinzel) with the slow flicker, and the subtitle "A graveyard of the dead web. Resurrect what's lost." A "Bury a new site" button opens the custom-URL modal.
+2. **Grid.** 20 hardcoded dead sites from `lib/sites.ts`, each with a name, domain, approximate death year and category. The grid has 3 columns at 1024px and wider, 2 from 768px, and 1 below that.
+3. **Tombstone cards.** Each card has a dark stone texture (`.stone` plus the noise overlay), an arched top, a cross and "R · I · P", the site name, its domain, "† <year>", a category tag and a "Resurrect" button. Cards have a slight fixed tilt and a ground shadow, and straighten and lift with an orange glow on hover or keyboard focus.
+4. **Card click.** The whole card is clickable through the button's stretched `::after`, with a single tab stop per card labeled "Resurrect <name>". The button must not use a transform, which would shrink the click area mid-press.
+5. **Confirm modal.** Clicking a card opens a modal titled "Resurrect <domain>?" with a short note, a "Let it rest" button and a focused "Resurrect" button. Confirming runs the API flow, and the loading, error or result view replaces the confirm step inside the same modal, which widens for results.
+6. **Bury a new site.** The modal contains the earlier custom-URL flow: the input with `https://` prefixing and the fading helper text, a submit button, and the results below the form.
+7. **Modal behavior.** Modals use the native `<dialog>` with `showModal()`, so focus is trapped and the page behind is inert. Escape, the close button and a backdrop click all close it. Page scroll is locked while open. The progress bar sits under the modal header. Closing a modal, or opening another site, discards any in-flight response.
+8. **Atmosphere.** The cobweb and bat from earlier stay, with a moonlight glow behind the hero and slowly drifting ground fog. Decorative layers are `aria-hidden` and ignore pointer events. Motion is disabled under reduced motion.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -107,3 +122,5 @@ Acceptance criteria:
 - `next lint` has not been run on this code.
 - When the Wayback availability API times out, it returns HTTP 200 with an `error` field. `getSnapshot` treats that as no snapshot, so the API returns 404, and the UI shows "No archive exists" when a retry would work.
 - The UI empty state uses its own all-fields-empty check. It does not read the API's `status` field.
+- Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
+- Wayback snapshot fetches can take over 30 seconds. The route's 10-second timeout then returns 504 for every site until the archive speeds up.
