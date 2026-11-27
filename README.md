@@ -120,6 +120,28 @@ const { total, items } = await res.json();
 - The content belongs to the original sites' authors. Credit the [Internet Archive](https://archive.org) and link the snapshot URL.
 - `schema` names are versioned. New fields may appear in `/1`, but existing ones won't change meaning. A breaking change would ship as `/2`.
 
+## Built With
+
+- **[Kiro IDE](https://kiro.dev)**: the whole app was built in Kiro through its agent chat, one commit per request. See [How Kiro was used](#how-kiro-was-used).
+- **Kiro Crew**: the name for the four analysts (Archaeologist, Designer, Engineer, Tester) behind Council Mode. They debate which snapshot to resurrect and vote. Each analyst is a deterministic rule applied to real snapshot data, not a separate AI model. See [`lib/council.ts`](lib/council.ts).
+- **[Next.js 14](https://nextjs.org)** (App Router): pages, API routes, server-rendered share pages and generated social images.
+- **[TypeScript](https://www.typescriptlang.org)** in strict mode.
+- **[Tailwind CSS](https://tailwindcss.com)** for all styling.
+- **[Cheerio](https://cheerio.js.org)** for extracting readable content from archived HTML. It runs on the server only.
+- **[Wayback Machine APIs](https://archive.org/help/wayback_api.php)**: the availability API finds the closest snapshot, and the CDX server lists every year on record.
+- **[Vercel](https://vercel.com)**: the intended deployment target. The app is a standard Next.js project with no Vercel-specific configuration. The share-page cache and the public API's list live in server memory, so on serverless hosting they reset whenever an instance restarts.
+
+## How Kiro was used
+
+| Kiro feature | How it was used | Where |
+|---|---|---|
+| **Steering** | Three files set the product's tone, the tech constraints (Next.js 14 App Router, strict TypeScript, Tailwind, Cheerio, no database) and the project layout. They were part of the context for every request. `structure.md` was updated as modules were added. | [`.kiro/steering/product.md`](.kiro/steering/product.md), [`tech.md`](.kiro/steering/tech.md), [`structure.md`](.kiro/steering/structure.md) |
+| **Specs** | `requirements.md` holds 12 requirements with numbered acceptance criteria, from the Wayback lookup through Council Mode and the public API. It was written after the first working pipeline and then updated with each feature. `tasks.md` is the checklist for that first pipeline milestone and was not extended for later features. There is no `design.md`. | [`.kiro/specs/afterlife/requirements.md`](.kiro/specs/afterlife/requirements.md), [`tasks.md`](.kiro/specs/afterlife/tasks.md) |
+| **Hooks** | Two hooks run when a `.ts` or `.tsx` file in `lib/` or `app/api/` is saved. One type-checks the project. The other runs a smoke test that posts three example sites to `/api/resurrect` and prints PASS or FAIL for each. It needs the dev server running, and it can fail when the Wayback Machine is slow. | [`.kiro/hooks/typecheck-on-save.json`](.kiro/hooks/typecheck-on-save.json), [`api-smoke-test.json`](.kiro/hooks/api-smoke-test.json), [`scripts/smoke-test.ts`](scripts/smoke-test.ts) |
+| **Agent chat** | Features were built request by request, each one checked and then committed with a `feat:`, `fix:` or `style:` message, so the commit history reads as the build log. | `git log` |
+
+**Not used:** MCP servers and property-based testing.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
