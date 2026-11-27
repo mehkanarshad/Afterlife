@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { CEREMONY_PHRASES } from "./copy";
 import { GhostIcon } from "./icons";
 
 // Timeline (ms from the click). The CSS in globals.css uses the same numbers:
@@ -16,14 +17,14 @@ export const CEREMONY_MS = 2000;
 // No counts here: the ceremony runs before the archive has answered, and in
 // Council Mode the debate that follows reports the real numbers.
 const PHRASES = [
-  { text: "Scanning archive…", at: 0 },
-  { text: "Snapshots located…", at: 650 },
-  { text: "Rebuilding…", at: 1300 },
+  { text: CEREMONY_PHRASES.summon, at: 0 },
+  { text: CEREMONY_PHRASES.read, at: 650 },
+  { text: CEREMONY_PHRASES.stitch, at: 1300 },
 ];
 const COUNCIL_PHRASES = [
-  { text: "Scanning archive…", at: 0 },
-  { text: "Snapshots located…", at: 650 },
-  { text: "Convening the council…", at: 1300 },
+  { text: CEREMONY_PHRASES.summon, at: 0 },
+  { text: CEREMONY_PHRASES.read, at: 650 },
+  { text: CEREMONY_PHRASES.council, at: 1300 },
 ];
 type Phrase = { text: string; at: number };
 const CHAR_MS = 22;

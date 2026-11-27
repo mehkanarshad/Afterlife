@@ -4,12 +4,8 @@ import { ResurrectionCeremony } from "./ceremony";
 import { CouncilVerdictBadge } from "./council-debate";
 import { GhostIcon, SkullIcon, WarningIcon } from "./icons";
 import { PostMortemReport } from "./post-mortem-report";
-import {
-  ERROR_COPY,
-  ErrorKind,
-  ResurrectResult,
-  isEmptyResult,
-} from "./use-resurrect";
+import { BUTTONS, EMPTY_STATE_HINT, EMPTY_STATE_TITLE, ERROR_COPY, emptyStateDetail } from "./copy";
+import { ErrorKind, ResurrectResult, isEmptyResult } from "./use-resurrect";
 
 // Placeholder line for the loading skeleton (pale gray gradient sweep).
 function ShimmerLine({ width }: { width: string }) {
@@ -35,7 +31,7 @@ function TombstoneLink({ url }: { url: string }) {
         {url}
       </p>
       <span className="relative mt-4 inline-block text-sm text-pumpkin">
-        View original snapshot →
+        {BUTTONS.viewSnapshot}
       </span>
     </a>
   );
@@ -167,13 +163,11 @@ export function ResultView({
                     className="h-20 w-20 text-ghost/90 drop-shadow-[0_0_14px_rgba(255,107,26,0.55)]"
                     strokeWidth={1.25}
                   />
-                  <p className="mt-6 text-base text-ghost">
-                    Nothing readable survived in this snapshot.
+                  <p className="mt-6 text-base text-ghost">{EMPTY_STATE_TITLE}</p>
+                  <p className="mt-2 max-w-sm text-sm text-neutral-400">
+                    {emptyStateDetail(result.postMortem?.cause)}
                   </p>
-                  <p className="mt-2 max-w-sm text-sm text-neutral-500">
-                    The archive only captured a redirect stub. Try another URL,
-                    or view the original snapshot below.
-                  </p>
+                  <p className="mt-2 max-w-sm text-sm text-neutral-500">{EMPTY_STATE_HINT}</p>
                   <div className="mt-8 w-full max-w-sm text-left">
                     <TombstoneLink url={result.snapshotUrl} />
                   </div>
@@ -224,7 +218,7 @@ export function ResultView({
                     }}
                     className={`${REVEAL} ${DELAY.images} mt-6 inline-block font-mono text-sm text-ghost underline underline-offset-4 hover:text-pumpkin`}
                   >
-                    ← Back to ghost
+                    {BUTTONS.backToGhost}
                   </a>
                 </>
               )}

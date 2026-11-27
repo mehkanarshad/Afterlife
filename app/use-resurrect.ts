@@ -22,26 +22,6 @@ export interface ResurrectResult {
 
 export type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
 
-// Each error has a headline (shown in white) and a hint (muted).
-export const ERROR_COPY: Record<ErrorKind, { message: string; hint: string }> = {
-  not_found: {
-    message: "No archive exists for this URL.",
-    hint: "It may never have been crawled, or the URL is misspelled.",
-  },
-  timeout: {
-    message: "Wayback Machine took too long to respond.",
-    hint: "Try again in a moment.",
-  },
-  network: {
-    message: "Couldn't reach the archive.",
-    hint: "Check your connection.",
-  },
-  unknown: {
-    message: "Something went wrong while digging.",
-    hint: "Try a different URL.",
-  },
-};
-
 function errorKindFromStatus(status: number): ErrorKind {
   if (status === 404) return "not_found";
   if (status === 504) return "timeout";

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { BUTTONS, LOG } from "../copy";
 import { CrossIcon, GhostIcon } from "../icons";
 import { Modal } from "../modal";
 import { QualityBadge, formatDate } from "../quality-badge";
@@ -45,7 +47,7 @@ function CopyShareLink({ shareId }: { shareId: string }) {
         autoFocus
         value={shareUrl(shareId)}
         onFocus={(e) => e.currentTarget.select()}
-        aria-label="Share link (copy it manually)"
+        aria-label={LOG.manualCopy}
         className="w-full rounded-md border border-neutral-700 bg-crypt px-2 py-1.5 font-mono text-xs text-neutral-300 focus:border-pumpkin focus:outline-none sm:w-64"
       />
     );
@@ -57,7 +59,7 @@ function CopyShareLink({ shareId }: { shareId: string }) {
       onClick={() => void copy()}
       className={`${smallButton} border-neutral-700 text-neutral-300 hover:border-ghost/60 hover:text-ghost focus-visible:border-ghost`}
     >
-      <span aria-live="polite">{state === "copied" ? "Copied ✓" : "Copy share link"}</span>
+      <span aria-live="polite">{state === "copied" ? BUTTONS.linkCopied : BUTTONS.copyLink}</span>
     </button>
   );
 }
@@ -102,10 +104,10 @@ function TimelineEntry({
           <button
             type="button"
             onClick={() => onView(record)}
-            aria-label={`View ${siteName(record.url)}`}
+            aria-label={`Open the grave of ${siteName(record.url)}`}
             className={`${smallButton} border-pumpkin/50 text-pumpkin hover:bg-pumpkin hover:text-black focus-visible:bg-pumpkin focus-visible:text-black`}
           >
-            View
+            {BUTTONS.openGrave}
           </button>
           <CopyShareLink shareId={record.shareId} />
         </div>
@@ -138,18 +140,20 @@ export default function LogPage() {
           <h1 className="font-display text-4xl font-bold tracking-wide text-pumpkin [text-shadow:0_0_24px_rgba(255,107,26,0.3)] sm:text-5xl">
             Resurrection Log
           </h1>
-          <p className="mt-3 text-sm text-neutral-500">
-            Every site you&apos;ve raised, kept in this browser.
-          </p>
+          <p className="mt-3 text-sm text-neutral-500">{LOG.subtitle}</p>
         </header>
 
         {records !== null && records.length === 0 && (
           <div className="flex flex-col items-center py-16 text-center">
             <GhostIcon className="h-16 w-16 text-ghost/70" strokeWidth={1.25} />
-            <p className="mt-6 text-ghost">The log is empty.</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              Resurrect a site from the graveyard and it will appear here.
-            </p>
+            <p className="mt-6 text-ghost">{LOG.emptyTitle}</p>
+            <p className="mt-2 text-sm text-neutral-500">{LOG.emptyHelp}</p>
+            <Link
+              href="/"
+              className="mt-6 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
+            >
+              {LOG.emptyLink}
+            </Link>
           </div>
         )}
 
@@ -171,7 +175,7 @@ export default function LogPage() {
                 onClick={() => setConfirmingClear(true)}
                 className={`${smallButton} border-neutral-700 text-neutral-400 hover:border-red-400/60 hover:text-red-300 focus-visible:border-red-400`}
               >
-                Clear log
+                {BUTTONS.clearLog}
               </button>
             </div>
           </>
@@ -187,10 +191,9 @@ export default function LogPage() {
         {viewing && <ResultView result={viewing.result} />}
       </Modal>
 
-      <Modal open={confirmingClear} onClose={() => setConfirmingClear(false)} title="Clear the log?">
+      <Modal open={confirmingClear} onClose={() => setConfirmingClear(false)} title={LOG.clearTitle}>
         <p className="text-sm leading-relaxed text-neutral-400">
-          This removes all {records?.length ?? 0} resurrections from this browser. Their share
-          links will stop working. This can&apos;t be undone.
+          {LOG.clearBody(records?.length ?? 0)}
         </p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button
@@ -199,14 +202,14 @@ export default function LogPage() {
             onClick={() => setConfirmingClear(false)}
             className="rounded-md border border-neutral-700 px-5 py-2 font-mono text-sm text-neutral-300 transition-colors hover:border-ghost/60 hover:text-ghost focus-visible:border-ghost focus-visible:outline-none"
           >
-            Keep it
+            {BUTTONS.keepLog}
           </button>
           <button
             type="button"
             onClick={handleClear}
             className="rounded-md border border-red-400/60 bg-red-950/40 px-5 py-2 font-mono text-sm text-red-200 transition-colors hover:bg-red-900/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
-            Clear log
+            {BUTTONS.clearLog}
           </button>
         </div>
       </Modal>

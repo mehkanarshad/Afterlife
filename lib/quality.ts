@@ -27,3 +27,8 @@ export function qualityBadge(score: number): QualityBadge {
   if (score < FULL_THRESHOLD) return "Partial";
   return "Full";
 }
+
+/** Fragments of readable content: headings, paragraphs and images. The title doesn't count. */
+export function fragmentCount(content: ExtractedContent): number {
+  return content.headings.length + content.paragraphs.length + content.images.length;
+}

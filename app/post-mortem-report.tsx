@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SnapshotEntry, eraOf, yearOf } from "@/lib/post-mortem";
 import { qualityBadge, qualityScore } from "@/lib/quality";
+import { BUTTONS, POST_MORTEM } from "./copy";
 import type { ResurrectResult } from "./use-resurrect";
 
 type Timeline =
@@ -63,10 +64,7 @@ export function PostMortemReport({
       if (!res.ok) {
         setTimeline({
           kind: "error",
-          message:
-            res.status === 504
-              ? "The Wayback Machine took too long to list snapshots."
-              : "Couldn't list snapshots from the Wayback Machine.",
+          message: res.status === 504 ? POST_MORTEM.timeout : POST_MORTEM.failed,
         });
         return;
       }
@@ -78,7 +76,7 @@ export function PostMortemReport({
       setTimeline({ kind: "ready", snapshots });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setTimeline({ kind: "error", message: "Couldn't reach the server." });
+      setTimeline({ kind: "error", message: POST_MORTEM.network });
     }
   }, [result.originalUrl]);
 
@@ -103,7 +101,7 @@ export function PostMortemReport({
           </span>
           {/* Key findings stay visible while collapsed. */}
           <span className={`mt-1 block truncate text-xs ${FADED_INK}`}>
-            {verdict?.cause ?? "Cause not recorded"} · {qualityBadge(score)}
+            {verdict?.cause ?? POST_MORTEM.causeUnrecorded} · {qualityBadge(score)}
             {year !== null && ` · ${eraOf(year)}`}
           </span>
         </span>
@@ -125,7 +123,7 @@ export function PostMortemReport({
         </span>
 
         <dl>
-          <Field label="Death cause">
+          <Field label={POST_MORTEM.labels.cause}>
             {verdict ? (
               <>
                 <span className="font-bold">{verdict.cause}</span>
@@ -136,31 +134,31 @@ export function PostMortemReport({
               </>
             ) : (
               <span className={FADED_INK}>
-                Not recorded for this resurrection. Resurrect the site again to analyze it.
+                {POST_MORTEM.causeNotFiled}
               </span>
             )}
           </Field>
 
-          <Field label="Snapshot quality">
+          <Field label={POST_MORTEM.labels.quality}>
             <span className="font-bold">{qualityBadge(score)}</span>
             <span className={`ml-2 text-xs ${FADED_INK}`}>score {score}</span>
           </Field>
 
-          <Field label="Era detected">
+          <Field label={POST_MORTEM.labels.era}>
             {year !== null ? (
               <>
                 <span className="font-bold">{eraOf(year)}</span>
                 <span className={`ml-2 text-xs ${FADED_INK}`}>captured {year}</span>
               </>
             ) : (
-              <span className={FADED_INK}>Unknown</span>
+              <span className={FADED_INK}>Lost to time</span>
             )}
           </Field>
 
-          <Field label="Available snapshots">
+          <Field label={POST_MORTEM.labels.years}>
             {timeline.kind === "loading" && (
               <p role="status" className={FADED_INK}>
-                Searching the archive…
+                {POST_MORTEM.searching}
               </p>
             )}
             {timeline.kind === "error" && (
@@ -171,12 +169,12 @@ export function PostMortemReport({
                   onClick={() => void loadTimeline()}
                   className={`underline underline-offset-4 hover:no-underline ${RUST}`}
                 >
-                  Try again
+                  {BUTTONS.retry}
                 </button>
               </p>
             )}
             {timeline.kind === "ready" && timeline.snapshots.length === 0 && (
-              <p className={FADED_INK}>The archive lists no successful captures for this URL.</p>
+              <p className={FADED_INK}>{POST_MORTEM.none}</p>
             )}
             {timeline.kind === "ready" && timeline.snapshots.length > 0 && (
               <>

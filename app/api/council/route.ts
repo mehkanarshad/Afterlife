@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CouncilCandidate, convene, pickCandidates } from "@/lib/council";
-import { qualityScore } from "@/lib/quality";
+import { fragmentCount, qualityScore } from "@/lib/quality";
 import { layoutMetrics, readUrlField, resurrectSnapshot } from "@/lib/resurrect";
 import { getSnapshotYears } from "@/lib/wayback";
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       timestamp: pick.timestamp,
       thin: outcome.payload.status === "thin_snapshot",
       score: qualityScore(extracted),
-      blocks: extracted.headings.length + extracted.paragraphs.length + extracted.images.length,
+      blocks: fragmentCount(extracted),
       htmlBytes: outcome.html.length,
       ...layoutMetrics(outcome.html),
       cause: outcome.payload.postMortem.cause,

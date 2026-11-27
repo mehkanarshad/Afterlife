@@ -1,14 +1,16 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type { ResurrectResult } from "./use-resurrect";
 import { DEAD_SITES, DeadSite } from "@/lib/sites";
 import { useCeremonyGate } from "./ceremony";
+import { BURY, BUTTONS, COUNCIL, EMPTY_URL_ERROR, successToast } from "./copy";
 import { CouncilDebate, CouncilToggle } from "./council-debate";
 import { BatSilhouette, Cobweb, GravestoneIcon } from "./icons";
 import { Modal } from "./modal";
 import { addRecord } from "./resurrection-log";
 import { ErrorAlert, LoadingView, ResultView } from "./results-view";
+import { Toast } from "./toast";
 import { TombstoneCard } from "./tombstone-card";
 import { useResurrect } from "./use-resurrect";
 
@@ -26,6 +28,8 @@ export default function Home() {
   const [modal, setModal] = useState<ModalState>({ kind: "closed" });
   const [url, setUrl] = useState("");
   const [focused, setFocused] = useState(false);
+  const [urlError, setUrlError] = useState(false);
+  const urlInput = useRef<HTMLInputElement>(null);
   const [councilMode, setCouncilMode] = useState(false);
   // The result whose debate has been watched or skipped.
   const [debated, setDebated] = useState<ResurrectResult | null>(null);
@@ -43,6 +47,7 @@ export default function Home() {
   // In Council Mode the debate plays after the ceremony and before the result.
   const showDebate = council !== null && result !== null && ceremonyDone && debated !== result;
   const showResult = result !== null && ceremonyDone && !showDebate;
+  const toast = result ? successToast(result.extracted) : null;
 
   // The confirm step is shown until the first request for this site starts.
   const started = loading || error !== null || result !== null;
@@ -60,6 +65,7 @@ export default function Home() {
 
   function close() {
     reset();
+    setUrlError(false);
     setModal({ kind: "closed" });
   }
 
@@ -71,6 +77,11 @@ export default function Home() {
 
   function handleBury(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (url.trim() === "") {
+      setUrlError(true);
+      urlInput.current?.focus();
+      return;
+    }
     void resurrect(url, { council: councilMode });
   }
 
@@ -81,10 +92,10 @@ export default function Home() {
       {showDebate && <CouncilDebate transcript={council} onDone={() => setDebated(result)} />}
       {showResult && councilSkipped && (
         <p role="status" className="rounded-md border border-neutral-700 bg-crypt px-4 py-2 text-xs text-neutral-400">
-          The archive was too slow to list snapshots, so the council sat this one out. Showing
-          the most recent snapshot.
+          {COUNCIL.skipped}
         </p>
       )}
+      {showResult && toast && <Toast key={result.snapshotTimestamp} message={toast} />}
       {showResult && (
         <ResultView
           result={result}
@@ -172,7 +183,7 @@ export default function Home() {
                   onClick={() => void resurrect(modal.site.domain, { council: councilMode })}
                   className={secondaryButton}
                 >
-                  Try again
+                  {BUTTONS.retry}
                 </button>
               </div>
             )}
@@ -188,30 +199,42 @@ export default function Home() {
         busy={loading}
       >
         <div className="space-y-6">
-          <form onSubmit={handleBury} className="flex flex-col gap-2 sm:flex-row">
+          <form onSubmit={handleBury} noValidate className="flex flex-col gap-2 sm:flex-row">
             <input
+              ref={urlInput}
               type="text"
               data-autofocus
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setUrlError(false);
+              }}
               onFocus={() => setFocused(true)}
               onBlur={handleBlur}
               aria-label="Website URL"
-              aria-describedby="url-helper"
-              placeholder="Enter a dead website URL, e.g. geocities.com"
-              className="min-w-0 flex-1 rounded-md border border-neutral-800 bg-crypt px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60"
+              aria-describedby={urlError ? "url-error url-helper" : "url-helper"}
+              aria-invalid={urlError}
+              placeholder={BURY.placeholder}
+              className={`min-w-0 flex-1 rounded-md border bg-crypt px-3 py-2 font-mono text-sm text-neutral-100 caret-pumpkin placeholder:text-neutral-500 focus:border-pumpkin focus:outline-none focus:ring-1 focus:ring-pumpkin/60 ${
+                urlError ? "border-pumpkin" : "border-neutral-800"
+              }`}
             />
-            <button type="submit" disabled={loading || url.trim() === ""} className={primaryButton}>
-              {loading ? "Digging…" : "Resurrect"}
+            <button type="submit" disabled={loading} className={primaryButton}>
+              {loading ? BUTTONS.digging : "Resurrect"}
             </button>
           </form>
+          {urlError && (
+            <p id="url-error" role="alert" className="-mt-3 text-sm text-pumpkin">
+              {EMPTY_URL_ERROR}
+            </p>
+          )}
           <p
             id="url-helper"
             className={`-mt-3 text-xs text-neutral-500 transition-opacity duration-300 motion-reduce:transition-none ${
               focused || url.trim() !== "" ? "opacity-100" : "opacity-0"
             }`}
           >
-            We&apos;ll look up the most recent Wayback Machine snapshot.
+            {BURY.helper}
           </p>
           <CouncilToggle checked={councilMode} onChange={setCouncilMode} disabled={loading} />
           {outcome}

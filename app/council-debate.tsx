@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { Agent, CouncilTranscript, CouncilVerdict } from "@/lib/council";
+import { BUTTONS, COUNCIL } from "./copy";
 
 const AVATAR: Record<Agent, string> = {
   Archaeologist: "🏺",
@@ -50,8 +51,7 @@ export function CouncilToggle({
           Council Mode
         </p>
         <p id={`${id}-help`} className="mt-0.5 text-xs leading-relaxed text-neutral-500">
-          Four analysts compare early, middle and recent snapshots, debate, and pick the best one.
-          Takes longer.
+          {COUNCIL.toggleHelp}
         </p>
       </div>
     </div>
@@ -109,7 +109,7 @@ export function CouncilDebate({
             onClick={() => onDoneRef.current()}
             className="rounded-md border border-pumpkin/60 px-3 py-1 text-xs text-pumpkin transition-colors hover:bg-pumpkin hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pumpkin"
           >
-            Continue
+            {BUTTONS.continue}
           </button>
         ) : (
           <button
@@ -117,7 +117,7 @@ export function CouncilDebate({
             onClick={() => onDoneRef.current()}
             className="rounded-md border border-neutral-700 px-3 py-1 text-xs text-neutral-400 transition-colors hover:border-ghost/60 hover:text-ghost focus-visible:border-ghost focus-visible:outline-none"
           >
-            Skip debate
+            {BUTTONS.skipDebate}
           </button>
         )}
       </div>
@@ -147,8 +147,8 @@ export function CouncilDebate({
       </ol>
 
       <p className="relative mt-6 text-xs text-neutral-500">
-        Each analyst scores the real snapshots by its own rule: size, age, text and fragments.
-        {finished && !reduced && " Resurrecting…"}
+        {COUNCIL.footnote}
+        {finished && !reduced && ` ${COUNCIL.finished}`}
       </p>
     </section>
   );

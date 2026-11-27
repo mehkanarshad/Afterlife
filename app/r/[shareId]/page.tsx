@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SHARE } from "../../copy";
 import { GhostIcon } from "../../icons";
 import { QualityBadge, formatDate } from "../../quality-badge";
 import { ResultView } from "../../results-view";
@@ -35,18 +36,16 @@ export default function SharedResurrectionPage() {
           <div className="mx-auto flex max-w-md flex-col items-center py-20 text-center">
             <GhostIcon className="h-16 w-16 text-ghost/70" strokeWidth={1.25} />
             <h1 className="mt-6 font-display text-2xl font-bold text-neutral-100">
-              This grave is empty
+              {SHARE.missingTitle}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-neutral-500">
-              No resurrection with this link is stored in this browser. The log is kept on the
-              device that made it, so share links only open there, and clearing the log removes
-              them.
+              {SHARE.missingBody}
             </p>
             <Link
               href="/"
               className="mt-8 text-sm text-ghost underline underline-offset-4 hover:text-pumpkin"
             >
-              Back to the graveyard
+              {SHARE.missingLink}
             </Link>
           </div>
         )}

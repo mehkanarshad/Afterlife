@@ -69,31 +69,33 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-1. **Guided entry.** The graveyard grid (requirement 6) replaces the earlier example chips: every tombstone is a working one-click path. In the "Bury a new site" modal, the input placeholder reads "Enter a dead website URL, e.g. geocities.com", and helper text below it reads "We'll look up the most recent Wayback Machine snapshot." The helper text fades in on focus and fades out when an empty input loses focus.
+1. **Guided entry.** The graveyard grid (requirement 6) replaces the earlier example chips: every tombstone is a working one-click path. In the "Bury a new site" modal, the input placeholder reads "Name the grave: geocities.com", and helper text below it reads "We'll dig up the most recent Wayback Machine snapshot." The helper text fades in on focus and fades out when an empty input loses focus.
 2. **Automatic `https://` prefixing.** When the "Bury a new site" input loses focus, and it is non-empty with no `scheme://`, `https://` is prepended. Grid sites are submitted as bare domains. While a request is in flight, the submit button is disabled and reads "Digging…".
 3. **Thin-snapshot detection.** After extraction, the API computes a quality score: `title.length + headings.join("").length + paragraphs.join("").length + images.length * 10`.
    - Below 50, the response includes `"status": "thin_snapshot"` and `"hint": "This snapshot contains very little readable content. It may be a redirect or error page."`
    - At 50 or more, the response includes `"status": "ok"` and no `hint`.
    - This is metadata only. The HTTP status code stays 200.
-4. **Contextual error messages.** Each error appears as an alert card in the modal, with a "Try again" button for grid sites. The card has a dark background, a 1px orange border with a 4px orange left border, and an orange warning icon. The headline is white and the hint is muted gray. The copy is chosen from the HTTP status:
+4. **Contextual error messages.** Each error appears as an alert card in the modal, with a "Dig again" button for grid sites. The card has a dark background, a 1px orange border with a 4px orange left border, and an orange warning icon. The headline is white and the hint is muted gray. The copy is chosen from the HTTP status:
 
    | Condition | Headline | Hint |
    |---|---|---|
-   | HTTP 404 | "No archive exists for this URL." | "It may never have been crawled, or the URL is misspelled." |
-   | HTTP 504 | "Wayback Machine took too long to respond." | "Try again in a moment." |
-   | Network failure (`fetch` rejects) | "Couldn't reach the archive." | "Check your connection." |
-   | Any other error, or an unreadable 200 body | "Something went wrong while digging." | "Try a different URL." |
+   | HTTP 404 | "This site was never buried here. No archive exists." | "Check the spelling, or try another grave." |
+   | HTTP 504 | "The archive is haunting us with silence." | "Try again in a moment." |
+   | Network failure (`fetch` rejects) | "The spirits can't reach the archive." | "Check your connection, then dig again." |
+   | Any other error, or an unreadable 200 body | "Something stirred that we didn't expect." | "Dig again, or try a different grave." |
 
 5. **Empty state.** When the title is `""` and headings, paragraphs and images are all empty, the Resurrected panel shows, centered and top to bottom:
    - A ghost icon with a soft orange glow.
-   - "Nothing readable survived in this snapshot." in pale green.
-   - "The archive only captured a redirect stub. Try another URL, or view the original snapshot below." in muted gray.
+   - "We dug, but only bones remained." in pale green.
+   - A detail line chosen by the inferred cause of death: "This snapshot is a redirect stub — nothing readable survived." for a redirect stub, "The domain lapsed and a parking page took its place — …" for an expired domain, "The archive only kept an error page — …" for a 404, "The server was already dead when the archive visited — …" for a gone server, and "The page was empty when the archive visited — …" when the cause is unknown or unrecorded.
+   - "Try another year in the Post-Mortem Report below, or open the original snapshot." in muted gray.
    - The tombstone snapshot link, the same card used in the Ghost column.
+   - No success toast is shown for an empty result.
 
 6. **Resurrection ceremony.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines above a short ceremony, built from CSS keyframes plus a small typewriter hook (`app/ceremony.tsx`):
    - 0–400ms: a glowing orange crack draws down a tombstone. 400–650ms: the two halves split apart.
    - 550–1350ms: a ghost rises out of the crack until it clears the stone, then floats gently in place.
-   - Status text types out on a schedule: "Scanning archive…" at 0ms, "Snapshots located…" at 650ms, "Rebuilding…" at 1300ms. Screen readers get each whole phrase, not each typed character.
+   - Status text types out on a schedule: "Summoning the archive…" at 0ms, "Reading the bones…" at 650ms, "Stitching fragments…" at 1300ms. In Council Mode the last phrase is "Convening the council…". Screen readers get each whole phrase, not each typed character.
    - The result is held until 2000ms even if the response is faster. It then reveals in groups 200ms apart: title, headings, paragraphs, images. A fast response is fully shown at about 2.9s. A slower response keeps the ceremony's idle state until it arrives. Errors skip the ceremony and show at once.
    - Under reduced motion, the ceremony shows its final state without movement and does not delay the result.
 
@@ -125,9 +127,9 @@ Acceptance criteria:
    - Stored data is validated on read. Corrupt or unrecognized entries are dropped. If storage is full, the oldest records are dropped to make room.
 2. **Nav.** A nav across the top of every page links "Graveyard" (`/`) and "Log" (`/log`) and marks the current page.
 3. **`/log` timeline.** One entry per resurrection on a vertical timeline. Each entry shows the site name, the resurrection date and time, the death year when known, and a quality badge: Thin below 50, Partial from 50 to 499, Full at 500 or more.
-4. **View.** Opens the stored result in a modal.
-5. **Copy share link.** Copies `<origin>/r/{shareId}` and shows "Copied ✓" for 2 seconds. If the clipboard is unavailable (non-secure origin), it shows the link in a selectable field instead.
-6. **Clear log.** Asks for confirmation in a modal, with "Keep it" focused by default. Confirming removes every record.
+4. **Open grave.** Opens the stored result in a modal.
+5. **Copy grave link.** Copies `<origin>/r/{shareId}` and shows "Link copied ✓" for 2 seconds. If the clipboard is unavailable (non-secure origin), it shows the link in a selectable field instead.
+6. **Empty the graveyard.** Asks "Empty the graveyard?" in a modal, with "Keep them" focused by default and the erased count in the text. Confirming removes every record. Confirming removes every record.
 7. **`/r/[shareId]`.** A read-only view of one record: site name, death year, snapshot date, resurrection date, quality badge and the result. An unknown ID shows "This grave is empty" with an explanation.
 
 ### 8. Post-Mortem Report
@@ -149,8 +151,8 @@ Acceptance criteria:
 5. **Available snapshots.** Opening the report calls `GET /api/snapshots?url=`. That route queries the Wayback CDX API server-side for one HTTP-200 capture per year, with a 15-second timeout, returning 504 on timeout and 502 on other failures. The list is cached for the session.
    - In the home page modals, each year resurrects that exact capture: `POST /api/resurrect` with `{ url, timestamp }`, which runs the ceremony again. The year being shown is marked and disabled.
    - In read-only views (the log modal and `/r/[shareId]`), each year opens the capture on the Wayback Machine instead.
-   - A failed lookup shows a message with "Try again".
-6. **Older log records** without `postMortem` show "Not recorded for this resurrection". A malformed `postMortem` in storage causes the record to be dropped.
+   - A failed lookup shows a message with a "Dig again" button.
+6. **Older log records** without `postMortem` show "The coroner wasn't present for this one. Resurrect the site again to file a report.". A malformed `postMortem` in storage causes the record to be dropped.
 
 ### 9. Council Mode
 
@@ -166,9 +168,26 @@ Acceptance criteria:
    - Engineer: the most readable text to rebuild.
    - Tester: the most fragments to verify (headings, paragraphs and images).
 4. **Debate.** Each analyst's line states facts computed from the snapshots: the years, the count of `<table>` and `<font>` tags, characters of text, fragments and each stub's inferred death cause. An analyst whose vote lost says so before the verdict. The last line is "Council agrees: <year>." when all four agree, or "Council settles on <year>, N of 4." otherwise. The lines live in `lib/council.ts` and are not scripted per site.
-5. **Playback.** After the ceremony, the debate plays one line at a time (400ms to the first, then 1.5s apart), and the speaker's avatar pulses. The result follows 1.2s after the last line. "Skip debate" jumps to the result at any time. Under reduced motion, every line shows at once with no pulse, and the result waits for a "Continue" click.
+5. **Playback.** After the ceremony, the debate plays one line at a time (400ms to the first, then 1.5s apart), and the speaker's avatar pulses. The result follows 1.2s after the last line. "Skip to the verdict" jumps to the result at any time. Under reduced motion, every line shows at once with no pulse, and the result waits for a "Reveal the resurrection" click.
 6. **Verdict badge.** The result shows "Council verdict: N/4 agents agreed on <year>.", where N is the real vote count. The verdict is saved in the log, so the badge also appears in the log modal and on share pages.
-7. **Fallback.** If the archive can't list snapshots in time, the route resurrects the latest snapshot as usual and returns `council: null`. The UI then shows "The archive was too slow to list snapshots, so the council sat this one out." and no debate or badge. If some of the three snapshots can't be retrieved, the Archaeologist names them and the council judges the rest.
+7. **Fallback.** If the archive can't list snapshots in time, the route resurrects the latest snapshot as usual and returns `council: null`. The UI then shows "The archive wouldn't list its snapshots in time, so the council sat this one out. Showing the most recent remains." and no debate or badge. If some of the three snapshots can't be retrieved, the Archaeologist names them and the council judges the rest.
+
+### 10. Voice and copy
+
+**User story:** As a visitor, I want every message to be spooky but clear, so the app has a personality and I always know what to do next.
+
+Acceptance criteria:
+
+1. All user-facing strings live in `app/copy.ts`, so the voice is edited in one place. Strings that depend on data (counts, causes, years) are built there by small functions.
+2. Every error names what happened and what to do next: a headline, then a hint such as "Check the spelling, or try another grave." or "Try again in a moment."
+3. **Empty URL.** Submitting the "Bury a new site" form with an empty or whitespace-only field shows "The grave needs a name. Enter a URL.", focuses the input, marks it `aria-invalid`, and sends no request. The message clears when the user types. The submit button is disabled only while a request runs.
+4. **Success toast.** When a live resurrection lands, a notice at the top of the result reads "Resurrection complete. N fragments stitched. The dead walk again.", where N is the real count of headings, paragraphs and images (singular "1 fragment"). It disappears after 6 seconds and is announced to screen readers.
+   - A thin result reads "Resurrection complete, but only scraps survived. N fragments stitched." A result with only a title reads "Resurrection complete, but only a name survived."
+   - An empty result shows no toast, because the panel explains it.
+   - The toast is inline in the modal, not floating, because the modal's `<dialog>` is in the browser's top layer.
+5. **Log empty state.** "Your graveyard is empty. Resurrect something." with a "Go to the graveyard" link.
+6. Buttons keep clear verbs: "Resurrect", "Let it rest", "Dig again", "Open grave", "Copy grave link", "Empty the graveyard", "Keep them", "Skip to the verdict", "Reveal the resurrection". "Bury a new site" is unchanged.
+7. API error messages and the API's `hint` field are not shown to users and keep their plain wording.
 
 ## Constraints
 
