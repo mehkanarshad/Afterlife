@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
 import { extractContent } from "./extract";
 import type { CouncilVerdict } from "./council";
-import { DeathVerdict, inferDeathCause } from "./post-mortem";
+import { inferDeathCause } from "./death-cause";
+import type { DeathVerdict } from "./post-mortem";
 import { THIN_THRESHOLD, qualityScore } from "./quality";
 import { getSnapshot, snapshotUrlFor } from "./wayback";
 

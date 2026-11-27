@@ -128,9 +128,9 @@ Acceptance criteria:
 2. **Nav.** A nav across the top of every page links "Graveyard" (`/`) and "Log" (`/log`) and marks the current page.
 3. **`/log` timeline.** One entry per resurrection on a vertical timeline. Each entry shows the site name, the resurrection date and time, the death year when known, and a quality badge: Thin below 50, Partial from 50 to 499, Full at 500 or more.
 4. **Open grave.** Opens the stored result in a modal.
-5. **Copy grave link.** Copies `<origin>/r/{shareId}` and shows "Link copied ✓" for 2 seconds. If the clipboard is unavailable (non-secure origin), it shows the link in a selectable field instead.
+5. **Copy grave link.** Copies `<origin>/r/{id}`, a self-contained link (see requirement 11), and warms the server's cache for it and shows "Link copied ✓" for 2 seconds. If the clipboard is unavailable (non-secure origin), it shows the link in a selectable field instead.
 6. **Empty the graveyard.** Asks "Empty the graveyard?" in a modal, with "Keep them" focused by default and the erased count in the text. Confirming removes every record. Confirming removes every record.
-7. **`/r/[shareId]`.** A read-only view of one record: site name, death year, snapshot date, resurrection date, quality badge and the result. An unknown ID shows "This grave is empty" with an explanation.
+7. **`/r/[shareId]`.** The shareable page. See requirement 11. Older links with a random 12-character id still open from this browser's log.
 
 ### 8. Post-Mortem Report
 
@@ -189,6 +189,22 @@ Acceptance criteria:
 6. Buttons keep clear verbs: "Resurrect", "Let it rest", "Dig again", "Open grave", "Copy grave link", "Empty the graveyard", "Keep them", "Skip to the verdict", "Reveal the resurrection". "Bury a new site" is unchanged.
 7. API error messages and the API's `hint` field are not shown to users and keep their plain wording.
 
+### 11. Shareable resurrection page
+
+**User story:** As someone sent a link, I want a page that stands on its own, with a good preview in chat apps, and as a researcher I want the underlying data.
+
+Acceptance criteria:
+
+1. **Self-contained links.** A share link is `/r/{id}`, where the id is the base64url encoding of `{ url, snapshot timestamp, resurrection time, death year }` (`lib/share.ts`). The link needs no database and opens on any device. The server validates the id strictly (url length, a real 14-digit Wayback timestamp, an ISO date, a plausible death year) and treats anything else as not a share id.
+2. **Content comes from the archive, not the link.** The server re-fetches the capture from the Wayback Machine, so a link can't be used to host arbitrary text. Results are cached in memory for an hour (at most 200 entries), and concurrent requests share one fetch. A failed fetch is not cached.
+3. **Full page, dark theme.** The page shows a banner, the site name as the title, the Ghost and Resurrected columns, the Post-Mortem Report, and a closing call to action. It streams: the head and banner arrive first, with a loading skeleton while the archive answers.
+4. **Banner.** "This site died in {year}. Resurrected by Afterlife on {date}." For sites outside the graveyard, where no death year is known, it reads "The Wayback Machine last captured this site in {year}. Resurrected by Afterlife on {date}." Dates are formatted in UTC, e.g. "November 27, 2026".
+5. **"Resurrect your own"** button, linking to the home page, appears in the banner and again at the bottom of the page.
+6. **SEO.** The title is "{domain} — Resurrected by Afterlife". The description gives the death year (when known), the resurrection date and the snapshot year. Both come from the id alone, so they never wait on the archive. The page also sets a canonical URL.
+7. **Open Graph and Twitter.** `og:title`, `og:description`, `og:type=article`, `og:site_name`, `og:url`, and a generated 1200×630 PNG `og:image` (`opengraph-image.tsx`) showing the site name, death year and date. `twitter:card` is `summary_large_image`. Absolute URLs use the request's host (`X-Forwarded-Host` and `X-Forwarded-Proto`, validated), falling back to `http://localhost:3000`.
+8. **Raw data.** A "Raw data (JSON)" link goes to `/r/{id}/raw`, which returns the extracted record: site, death year, resurrection time, snapshot timestamp and Wayback URL, quality score and badge, fragment count, post-mortem verdict, and the extracted title, headings, paragraphs and images. It is public, sends `Access-Control-Allow-Origin: *`, and is cached for an hour. Its schema is `afterlife.resurrection/1`.
+9. **Older links.** An id that isn't a share id falls back to the browser-local lookup, with `noindex` metadata.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -205,7 +221,10 @@ Acceptance criteria:
 - When the Wayback availability API times out, it returns HTTP 200 with an `error` field. `getSnapshot` treats that as no snapshot, so the API returns 404, and the UI shows "No archive exists" when a retry would work.
 - The UI empty state uses its own all-fields-empty check. It does not read the API's `status` field.
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
-- Share links only work in the browser that created them, because the log is in that browser's `localStorage` and there is no database. Anyone else who opens one sees "This grave is empty". Clearing the log also breaks them.
+- Share links made before requirement 11 (a random 12-character id) only work in the browser that created them. New links work everywhere.
+- A share page depends on the Wayback Machine answering. The first visit after a restart, or after an hour, re-fetches the capture. If that fails, the page says so and offers "Dig again", and the preview tags and image still work because they never wait on the archive.
+- A share link's resurrection date and death year are not signed, so anyone can edit them in a link. The archived content itself always comes from the Wayback Machine.
+- The social preview image uses the default sans-serif font, not Cinzel.
 - Death cause is a heuristic over a single capture. It can't see DNS or registrar history, so "Domain expired" is only detected from parking-page text, and many dead sites come back "Undetermined" because their last capture still looks alive.
 - Council Mode needs the CDX list plus three snapshot fetches, so it often takes 15 seconds or more, and it falls back to a plain resurrection whenever the CDX list times out. In testing, that was two of three live attempts.
 - The council's "agents" are four deterministic rules voiced as characters, not separate AI models. The UI says each analyst "scores the real snapshots by its own rule".

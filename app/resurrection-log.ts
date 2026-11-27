@@ -1,4 +1,5 @@
-import { DEAD_SITES } from "@/lib/sites";
+import { DEAD_SITES, normalizeUrl, siteName } from "@/lib/sites";
+import { parseWaybackTimestamp } from "@/lib/share";
 import { qualityScore } from "@/lib/quality";
 import type { ResurrectResult } from "./use-resurrect";
 
@@ -110,22 +111,6 @@ function newShareId(): string {
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
 }
 
-/** "https://www.MySpace.com/tom/" -> "myspace.com/tom" */
-export function normalizeUrl(url: string): string {
-  return url
-    .trim()
-    .toLowerCase()
-    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/+$/, "");
-}
-
-/** The graveyard name for a URL if it's one of ours, else the normalized URL. */
-export function siteName(url: string): string {
-  const key = normalizeUrl(url);
-  return DEAD_SITES.find((s) => s.domain === key)?.name ?? key;
-}
-
 export function addRecord(result: ResurrectResult): ResurrectionRecord {
   const key = normalizeUrl(result.originalUrl);
   const record: ResurrectionRecord = {
@@ -140,11 +125,5 @@ export function addRecord(result: ResurrectResult): ResurrectionRecord {
   return record;
 }
 
-/** "20190613084634" -> Date, or null if malformed. */
-export function parseWaybackTimestamp(ts: string): Date | null {
-  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?/.exec(ts);
-  if (!m) return null;
-  const [, y, mo, d, h = "0", mi = "0", s = "0"] = m;
-  const date = new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+// Shared helpers live in lib/ (the server uses them too); re-exported for the UI.
+export { normalizeUrl, siteName, parseWaybackTimestamp };

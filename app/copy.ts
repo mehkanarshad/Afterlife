@@ -147,7 +147,42 @@ export const LOG = {
   manualCopy: "Grave link (copy it manually)",
 } as const;
 
+interface ShareFacts {
+  /** Domain as shown in titles, e.g. "geocities.com". */
+  domain: string;
+  deathYear: number | null;
+  /** Year of the archived capture. */
+  snapshotYear: number;
+  /** Already formatted, e.g. "November 27, 2026". */
+  resurrectedOn: string;
+}
+
+/** Banner at the top of a shared page. */
+export function shareBanner({ deathYear, snapshotYear, resurrectedOn }: ShareFacts): string {
+  const lead =
+    deathYear !== null
+      ? `This site died in ${deathYear}.`
+      : `The Wayback Machine last captured this site in ${snapshotYear}.`;
+  return `${lead} Resurrected by Afterlife on ${resurrectedOn}.`;
+}
+
+export function shareTitle(domain: string): string {
+  return `${domain} — Resurrected by Afterlife`;
+}
+
+export function shareDescription({ domain, deathYear, snapshotYear, resurrectedOn }: ShareFacts): string {
+  const from = `from a ${snapshotYear} Wayback Machine snapshot`;
+  return deathYear !== null
+    ? `${domain} died in ${deathYear}. Resurrected by Afterlife on ${resurrectedOn}, ${from}.`
+    : `Afterlife resurrected ${domain} on ${resurrectedOn}, ${from}.`;
+}
+
 export const SHARE = {
+  cta: "Resurrect your own",
+  ctaHelp: "Every dead site has a grave. Dig up one of your own.",
+  rawData: "Raw data (JSON)",
+  loadFailedTitle: "The grave wouldn't open",
+  loadFailedHelp: "This resurrection exists, but the archive didn't answer in time.",
   missingTitle: "This grave is empty",
   missingBody:
     "No resurrection with this link is stored in this browser. Grave links only open in the browser that raised the site, and emptying the graveyard erases them.",

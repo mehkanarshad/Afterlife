@@ -18,7 +18,10 @@ Current modules:
 - `lib/wayback.ts` — Wayback Machine availability lookup, exact-capture URLs, and the CDX per-year snapshot list
 - `lib/extract.ts` — HTML content extraction via Cheerio
 - `lib/quality.ts` — quality score and Full / Partial / Thin badge, shared by the API and the UI
-- `lib/post-mortem.ts` — death-cause inference, era labels, CDX response parsing
+- `lib/post-mortem.ts` — era labels and CDX response parsing (safe for the browser)
+- `lib/death-cause.ts` — death-cause inference from snapshot HTML (server only, uses Cheerio)
+- `lib/share.ts` — share-link encoding and decoding, date helpers (safe for the browser)
+- `lib/shared-load.ts` — loads and caches the capture behind a share link, builds the raw JSON (server only)
 - `lib/resurrect.ts` — fetch one snapshot and extract it (shared by `/api/resurrect` and `/api/council`)
 - `lib/council.ts` — Council Mode: candidate selection, the four analysts' votes and the debate lines
 - `lib/sites.ts` — the 20 hardcoded dead sites shown in the graveyard

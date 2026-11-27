@@ -46,3 +46,19 @@ export const DEAD_SITES: readonly DeadSite[] = [
   { name: "AIM", domain: "aim.com", diedYear: 2017, category: "Messaging" },
   { name: "Yahoo Directory", domain: "dir.yahoo.com", diedYear: 2014, category: "Directory" },
 ];
+
+/** "https://www.MySpace.com/tom/" -> "myspace.com/tom" */
+export function normalizeUrl(url: string): string {
+  return url
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "");
+}
+
+/** The graveyard name for a URL if it's one of ours, else the normalized URL. */
+export function siteName(url: string): string {
+  const key = normalizeUrl(url);
+  return DEAD_SITES.find((s) => s.domain === key)?.name ?? key;
+}

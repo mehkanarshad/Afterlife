@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { encodeShareId } from "@/lib/share";
 import { BUTTONS, LOG } from "../copy";
 import { CrossIcon, GhostIcon } from "../icons";
 import { Modal } from "../modal";
@@ -17,11 +18,22 @@ import {
 const smallButton =
   "rounded-md border px-3 py-1.5 font-mono text-xs transition-colors focus-visible:outline-none";
 
-function shareUrl(shareId: string): string {
-  return `${window.location.origin}/r/${shareId}`;
+// Share links carry their own data (site, capture, dates), so they open for
+// anyone, on any device. Built from the snapshot actually served.
+function shareId(record: ResurrectionRecord): string {
+  return encodeShareId({
+    url: record.url,
+    timestamp: record.result.snapshotTimestamp,
+    resurrectedAt: new Date(record.timestamp).toISOString(),
+    deathYear: record.deathYear,
+  });
 }
 
-function CopyShareLink({ shareId }: { shareId: string }) {
+function shareUrl(record: ResurrectionRecord): string {
+  return `${window.location.origin}/r/${shareId(record)}`;
+}
+
+function CopyShareLink({ record }: { record: ResurrectionRecord }) {
   const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
 
   useEffect(() => {
@@ -33,8 +45,11 @@ function CopyShareLink({ shareId }: { shareId: string }) {
   async function copy() {
     try {
       // The Clipboard API needs a secure context (https or localhost).
-      await navigator.clipboard.writeText(shareUrl(shareId));
+      await navigator.clipboard.writeText(shareUrl(record));
       setState("copied");
+      // Warm the server's cache, so the first person to open the link (or a
+      // crawler) doesn't wait on the archive. Failure here doesn't matter.
+      void fetch(`/r/${shareId(record)}/raw`).catch(() => {});
     } catch {
       setState("manual");
     }
@@ -45,7 +60,7 @@ function CopyShareLink({ shareId }: { shareId: string }) {
       <input
         readOnly
         autoFocus
-        value={shareUrl(shareId)}
+        value={shareUrl(record)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={LOG.manualCopy}
         className="w-full rounded-md border border-neutral-700 bg-crypt px-2 py-1.5 font-mono text-xs text-neutral-300 focus:border-pumpkin focus:outline-none sm:w-64"
@@ -109,7 +124,7 @@ function TimelineEntry({
           >
             {BUTTONS.openGrave}
           </button>
-          <CopyShareLink shareId={record.shareId} />
+          <CopyShareLink record={record} />
         </div>
       </article>
     </li>
