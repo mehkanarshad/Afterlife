@@ -138,6 +138,7 @@ export const POST_MORTEM = {
 
 export const LOG = {
   subtitle: "Every grave you've disturbed, kept in this browser only.",
+  shareNote: "Your log stays in this browser. A grave link is public: once opened, it's listed in the public API.",
   emptyTitle: "Your graveyard is empty. Resurrect something.",
   emptyHelp: "Raise a site from the graveyard and it will be recorded here.",
   emptyLink: "Go to the graveyard",

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { decodeShareId, formatLongDate, parseWaybackTimestamp, ShareRef } from "@/lib/share";
+import { originFromHeaders } from "@/lib/origin";
+import { registerPublic } from "@/lib/public-registry";
 import { loadShared } from "@/lib/shared-load";
 import { qualityScore } from "@/lib/quality";
 import { normalizeUrl, siteName } from "@/lib/sites";
@@ -20,11 +22,7 @@ const ctaClass =
 /** Absolute origin for og:image and canonical URLs, from the request itself. */
 function requestOrigin(): string {
   const h = headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = (h.get("x-forwarded-proto") ?? "").split(",")[0].trim() || (host.startsWith("localhost") ? "http" : "https");
-  // Header values end up in URLs, so accept only well-formed ones.
-  if (!/^[a-z0-9.-]+(:\d{1,5})?$/i.test(host) || !/^https?$/.test(proto)) return "http://localhost:3000";
-  return `${proto}://${host}`;
+  return originFromHeaders((name) => h.get(name));
 }
 
 function facts(share: ShareRef) {
@@ -71,6 +69,10 @@ export default async function SharedResurrectionPage({ params }: Props) {
   if (!share) return <LocalSharePage shareId={params.shareId} />;
 
   const loaded = await loadShared(share);
+
+  // Opening a share page makes the resurrection public: it is listed in
+  // /api/public/resurrections. Nothing from a private log gets here.
+  if (loaded.ok) registerPublic(params.shareId, share.url, loaded.payload);
 
   return (
     <main className="relative flex min-h-screen flex-col bg-crypt px-6 pb-16 pt-24 font-mono text-neutral-200">

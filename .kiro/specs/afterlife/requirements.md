@@ -205,6 +205,21 @@ Acceptance criteria:
 8. **Raw data.** A "Raw data (JSON)" link goes to `/r/{id}/raw`, which returns the extracted record: site, death year, resurrection time, snapshot timestamp and Wayback URL, quality score and badge, fragment count, post-mortem verdict, and the extracted title, headings, paragraphs and images. It is public, sends `Access-Control-Allow-Origin: *`, and is cached for an hour. Its schema is `afterlife.resurrection/1`.
 9. **Older links.** An id that isn't a share id falls back to the browser-local lookup, with `noindex` metadata.
 
+### 12. Public API
+
+**User story:** As a researcher, archivist or developer, I want to read Afterlife's public resurrections as JSON, so I can build on them.
+
+Acceptance criteria:
+
+1. **Endpoint.** `GET /api/public/resurrections` returns `{ schema: "afterlife.public-resurrections/1", total, limit, offset, retention: "memory", items }`, newest first. It needs no key.
+2. **Parameters.** `limit` (1 to 100, default 50), `offset` (0 or more), `site` (matched after dropping the protocol, `www.` and trailing slashes) and `include=extracted` (adds each item's extracted content). Any invalid value returns 400 with `{ error }`.
+3. **Items.** Each item has `id`, absolute `page` and `raw` links, `site { url, name, diedYear }`, `firstSeenAt`, `snapshot { source, timestamp, capturedAt, url }`, `quality { score, badge, fragments }` and `postMortem`. Absolute links use the request's validated host.
+4. **What is public.** A resurrection becomes public when its share page is opened, and not before. The raw-data endpoint, `/api/resurrect` and a visitor's private log never publish anything. The log page says so: "A grave link is public: once opened, it's listed in the public API."
+5. **Trusted fields only.** The API ignores the resurrection date and death year carried in a share link, because anyone can edit them. `firstSeenAt` is the server's own clock and `diedYear` comes from the graveyard list. A capture seen twice is listed once, with its first-seen time.
+6. **Retention.** The registry is in memory, holds the 200 most recently first-seen captures, and resets when the server restarts. This follows the no-database rule, and `retention: "memory"` says so in every response.
+7. **CORS.** Every response, errors included, sends `Access-Control-Allow-Origin: *`. `OPTIONS` returns 204 with the allowed methods and headers. Responses are cached for 30 seconds.
+8. **Documentation.** The README has an "Afterlife Public API" section: what "public" means, the parameters and fields, `curl` and `fetch` examples, the raw record, and usage guidance.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -223,6 +238,7 @@ Acceptance criteria:
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
 - Share links made before requirement 11 (a random 12-character id) only work in the browser that created them. New links work everywhere.
 - A share page depends on the Wayback Machine answering. The first visit after a restart, or after an hour, re-fetches the capture. If that fails, the page says so and offers "Dig again", and the preview tags and image still work because they never wait on the archive.
+- The public list is ephemeral and capped at 200 entries. Anyone can add to it by opening a crafted share link, though the content always comes from the Wayback Machine and the forgeable fields are never exposed.
 - A share link's resurrection date and death year are not signed, so anyone can edit them in a link. The archived content itself always comes from the Wayback Machine.
 - The social preview image uses the default sans-serif font, not Cinzel.
 - Death cause is a heuristic over a single capture. It can't see DNS or registrar history, so "Domain expired" is only detected from parking-page text, and many dead sites come back "Undetermined" because their last capture still looks alive.

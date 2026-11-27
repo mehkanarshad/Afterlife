@@ -21,6 +21,8 @@ Current modules:
 - `lib/post-mortem.ts` — era labels and CDX response parsing (safe for the browser)
 - `lib/death-cause.ts` — death-cause inference from snapshot HTML (server only, uses Cheerio)
 - `lib/share.ts` — share-link encoding and decoding, date helpers (safe for the browser)
+- `lib/origin.ts` — the site's public origin from request headers, for absolute URLs
+- `lib/public-registry.ts` — in-memory list of public resurrections behind the public API (server only)
 - `lib/shared-load.ts` — loads and caches the capture behind a share link, builds the raw JSON (server only)
 - `lib/resurrect.ts` — fetch one snapshot and extract it (shared by `/api/resurrect` and `/api/council`)
 - `lib/council.ts` — Council Mode: candidate selection, the four analysts' votes and the debate lines

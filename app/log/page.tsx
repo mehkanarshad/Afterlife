@@ -156,6 +156,7 @@ export default function LogPage() {
             Resurrection Log
           </h1>
           <p className="mt-3 text-sm text-neutral-500">{LOG.subtitle}</p>
+          <p className="mt-1 text-xs text-neutral-600">{LOG.shareNote}</p>
         </header>
 
         {records !== null && records.length === 0 && (
