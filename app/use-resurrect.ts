@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import type { CouncilTranscript, CouncilVerdict } from "@/lib/council";
 import type { DeathVerdict } from "@/lib/post-mortem";
 
 export interface ResurrectResult {
@@ -15,6 +16,8 @@ export interface ResurrectResult {
   };
   /** Missing on results logged before the post-mortem existed. */
   postMortem?: DeathVerdict;
+  /** Present when Council Mode chose this snapshot. */
+  council?: CouncilVerdict;
 }
 
 export type ErrorKind = "not_found" | "timeout" | "network" | "unknown";
@@ -60,6 +63,12 @@ export function useResurrect() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorKind | null>(null);
   const [result, setResult] = useState<ResurrectResult | null>(null);
+  // The debate behind `result`; null outside Council Mode or when the
+  // archive couldn't list snapshots and the request fell back to the latest.
+  const [council, setCouncil] = useState<CouncilTranscript | null>(null);
+  // True when Council Mode was on but the archive couldn't list snapshots, so
+  // the request fell back to the latest one with no debate.
+  const [councilSkipped, setCouncilSkipped] = useState(false);
   // Bumped on every request and reset, so a response that arrives after the
   // modal was closed or another site was picked is ignored.
   const requestId = useRef(0);
@@ -69,10 +78,17 @@ export function useResurrect() {
     setLoading(false);
     setError(null);
     setResult(null);
+    setCouncil(null);
+    setCouncilSkipped(false);
   }, []);
 
-  /** `timestamp` picks a specific capture; omit it for the most recent one. */
-  const resurrect = useCallback(async (rawUrl: string, timestamp?: string) => {
+  /**
+   * `timestamp` picks a specific capture; omit it for the most recent one.
+   * `council` lets four analysts compare several snapshots and pick one, and
+   * takes precedence over `timestamp`.
+   */
+  const resurrect = useCallback(async (rawUrl: string, options: { timestamp?: string; council?: boolean } = {}) => {
+    const { timestamp, council: useCouncil = false } = options;
     const trimmed = rawUrl.trim();
     if (!trimmed) return;
 
@@ -81,13 +97,15 @@ export function useResurrect() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setCouncil(null);
+    setCouncilSkipped(false);
 
     let res: Response;
     try {
-      res = await fetch("/api/resurrect", {
+      res = await fetch(useCouncil ? "/api/council" : "/api/resurrect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(timestamp ? { url: trimmed, timestamp } : { url: trimmed }),
+        body: JSON.stringify(timestamp && !useCouncil ? { url: trimmed, timestamp } : { url: trimmed }),
       });
     } catch {
       // fetch only rejects when the request never got a response.
@@ -102,8 +120,17 @@ export function useResurrect() {
         if (isCurrent()) setError(errorKindFromStatus(res.status));
         return;
       }
-      const data = (await res.json()) as ResurrectResult;
-      if (isCurrent()) setResult(data);
+      const data: unknown = await res.json();
+      if (useCouncil) {
+        const body = data as { result: ResurrectResult; council: CouncilTranscript | null };
+        if (isCurrent()) {
+          setCouncil(body.council);
+          setCouncilSkipped(body.council === null);
+          setResult(body.result);
+        }
+      } else if (isCurrent()) {
+        setResult(data as ResurrectResult);
+      }
     } catch {
       // A 200 with an unparseable body.
       if (isCurrent()) setError("unknown");
@@ -112,5 +139,5 @@ export function useResurrect() {
     }
   }, []);
 
-  return { loading, error, result, resurrect, reset };
+  return { loading, error, result, council, councilSkipped, resurrect, reset };
 }

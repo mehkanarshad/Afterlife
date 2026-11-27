@@ -1,6 +1,7 @@
 "use client";
 
 import { ResurrectionCeremony } from "./ceremony";
+import { CouncilVerdictBadge } from "./council-debate";
 import { GhostIcon, SkullIcon, WarningIcon } from "./icons";
 import { PostMortemReport } from "./post-mortem-report";
 import {
@@ -95,7 +96,7 @@ export function ErrorAlert({ kind }: { kind: ErrorKind }) {
   );
 }
 
-export function LoadingView() {
+export function LoadingView({ council = false }: { council?: boolean }) {
   return (
     <TwoColumns
       ghost={
@@ -116,7 +117,7 @@ export function LoadingView() {
               <ShimmerLine width="w-full" />
               <ShimmerLine width="w-3/5" />
             </div>
-            <ResurrectionCeremony />
+            <ResurrectionCeremony council={council} />
           </div>
         </section>
       }
@@ -148,6 +149,7 @@ export function ResultView({
 
   return (
     <div>
+      {result.council && <CouncilVerdictBadge verdict={result.council} />}
       <TwoColumns
         ghost={
           <section id="ghost" className={`flex scroll-mt-4 flex-col ${REVEAL}`}>

@@ -19,6 +19,8 @@ Current modules:
 - `lib/extract.ts` — HTML content extraction via Cheerio
 - `lib/quality.ts` — quality score and Full / Partial / Thin badge, shared by the API and the UI
 - `lib/post-mortem.ts` — death-cause inference, era labels, CDX response parsing
+- `lib/resurrect.ts` — fetch one snapshot and extract it (shared by `/api/resurrect` and `/api/council`)
+- `lib/council.ts` — Council Mode: candidate selection, the four analysts' votes and the debate lines
 - `lib/sites.ts` — the 20 hardcoded dead sites shown in the graveyard
 
 ## Conventions

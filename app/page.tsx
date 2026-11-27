@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import type { ResurrectResult } from "./use-resurrect";
 import { DEAD_SITES, DeadSite } from "@/lib/sites";
 import { useCeremonyGate } from "./ceremony";
+import { CouncilDebate, CouncilToggle } from "./council-debate";
 import { BatSilhouette, Cobweb, GravestoneIcon } from "./icons";
 import { Modal } from "./modal";
 import { addRecord } from "./resurrection-log";
@@ -24,7 +26,10 @@ export default function Home() {
   const [modal, setModal] = useState<ModalState>({ kind: "closed" });
   const [url, setUrl] = useState("");
   const [focused, setFocused] = useState(false);
-  const { loading, error, result, resurrect, reset } = useResurrect();
+  const [councilMode, setCouncilMode] = useState(false);
+  // The result whose debate has been watched or skipped.
+  const [debated, setDebated] = useState<ResurrectResult | null>(null);
+  const { loading, error, result, council, councilSkipped, resurrect, reset } = useResurrect();
   const ceremonyDone = useCeremonyGate(loading);
 
   // Every successful resurrection, thin ones included, goes into the /log.
@@ -35,6 +40,9 @@ export default function Home() {
   // The ceremony runs for at least CEREMONY_MS, even when the response is
   // faster. Errors skip it and show at once.
   const showCeremony = error === null && (loading || (result !== null && !ceremonyDone));
+  // In Council Mode the debate plays after the ceremony and before the result.
+  const showDebate = council !== null && result !== null && ceremonyDone && debated !== result;
+  const showResult = result !== null && ceremonyDone && !showDebate;
 
   // The confirm step is shown until the first request for this site starts.
   const started = loading || error !== null || result !== null;
@@ -63,17 +71,24 @@ export default function Home() {
 
   function handleBury(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    void resurrect(url);
+    void resurrect(url, { council: councilMode });
   }
 
   const outcome = (
     <>
       {error && <ErrorAlert kind={error} />}
-      {showCeremony && <LoadingView />}
-      {result && ceremonyDone && (
+      {showCeremony && <LoadingView council={councilMode} />}
+      {showDebate && <CouncilDebate transcript={council} onDone={() => setDebated(result)} />}
+      {showResult && councilSkipped && (
+        <p role="status" className="rounded-md border border-neutral-700 bg-crypt px-4 py-2 text-xs text-neutral-400">
+          The archive was too slow to list snapshots, so the council sat this one out. Showing
+          the most recent snapshot.
+        </p>
+      )}
+      {showResult && (
         <ResultView
           result={result}
-          onResurrectSnapshot={(timestamp) => void resurrect(result.originalUrl, timestamp)}
+          onResurrectSnapshot={(timestamp) => void resurrect(result.originalUrl, { timestamp })}
         />
       )}
     </>
@@ -133,6 +148,7 @@ export default function Home() {
                   its most recent Wayback Machine snapshot and bring back whatever is still
                   readable.
                 </p>
+                <CouncilToggle checked={councilMode} onChange={setCouncilMode} />
                 <div className="flex flex-wrap justify-end gap-3">
                   <button type="button" onClick={close} className={secondaryButton}>
                     Let it rest
@@ -140,7 +156,7 @@ export default function Home() {
                   <button
                     type="button"
                     data-autofocus
-                    onClick={() => void resurrect(modal.site.domain)}
+                    onClick={() => void resurrect(modal.site.domain, { council: councilMode })}
                     className={primaryButton}
                   >
                     Resurrect
@@ -153,7 +169,7 @@ export default function Home() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => void resurrect(modal.site.domain)}
+                  onClick={() => void resurrect(modal.site.domain, { council: councilMode })}
                   className={secondaryButton}
                 >
                   Try again
@@ -197,6 +213,7 @@ export default function Home() {
           >
             We&apos;ll look up the most recent Wayback Machine snapshot.
           </p>
+          <CouncilToggle checked={councilMode} onChange={setCouncilMode} disabled={loading} />
           {outcome}
         </div>
       </Modal>

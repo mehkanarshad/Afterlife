@@ -13,11 +13,19 @@ import { GhostIcon } from "./icons";
 // shown at about 2.9s.
 export const CEREMONY_MS = 2000;
 
+// No counts here: the ceremony runs before the archive has answered, and in
+// Council Mode the debate that follows reports the real numbers.
 const PHRASES = [
   { text: "Scanning archive…", at: 0 },
-  { text: "47 snapshots found…", at: 650 },
+  { text: "Snapshots located…", at: 650 },
   { text: "Rebuilding…", at: 1300 },
 ];
+const COUNCIL_PHRASES = [
+  { text: "Scanning archive…", at: 0 },
+  { text: "Snapshots located…", at: 650 },
+  { text: "Convening the council…", at: 1300 },
+];
+type Phrase = { text: string; at: number };
 const CHAR_MS = 22;
 
 function prefersReducedMotion(): boolean {
@@ -48,37 +56,37 @@ export function useCeremonyGate(loading: boolean): boolean {
 }
 
 /** Types PHRASES out on their schedule. Returns the current phrase and how much is shown. */
-function useTypewriter() {
+function useTypewriter(phrases: Phrase[]) {
   const [state, setState] = useState({ index: 0, chars: 0 });
 
   useEffect(() => {
     if (prefersReducedMotion()) {
       // No typing: show each phrase whole when its turn comes.
-      const timers = PHRASES.map((p, index) =>
+      const timers = phrases.map((p, index) =>
         setTimeout(() => setState({ index, chars: p.text.length }), p.at)
       );
       return () => timers.forEach(clearTimeout);
     }
 
     const start = performance.now();
-    const last = PHRASES[PHRASES.length - 1];
+    const last = phrases[phrases.length - 1];
     const id = setInterval(() => {
       const elapsed = performance.now() - start;
       let index = 0;
-      PHRASES.forEach((p, i) => {
+      phrases.forEach((p, i) => {
         if (elapsed >= p.at) index = i;
       });
       const chars = Math.min(
-        PHRASES[index].text.length,
-        Math.floor((elapsed - PHRASES[index].at) / CHAR_MS)
+        phrases[index].text.length,
+        Math.floor((elapsed - phrases[index].at) / CHAR_MS)
       );
       setState((s) => (s.index === index && s.chars === chars ? s : { index, chars }));
       if (elapsed >= last.at + last.text.length * CHAR_MS) clearInterval(id);
     }, 16);
     return () => clearInterval(id);
-  }, []);
+  }, [phrases]);
 
-  return { phrase: PHRASES[state.index].text, typed: PHRASES[state.index].text.slice(0, state.chars) };
+  return { phrase: phrases[state.index].text, typed: phrases[state.index].text.slice(0, state.chars) };
 }
 
 // Points of the crack; the halves are clipped along the same zigzag.
@@ -87,8 +95,8 @@ const LEFT_HALF = `0,0 48,0 ${CRACK} 0,120`;
 const RIGHT_HALF = `48,0 96,0 96,120 ${CRACK.split(" ").reverse().join(" ")}`;
 const STONE = "M8 120V44a40 40 0 0 1 80 0v76z";
 
-export function ResurrectionCeremony() {
-  const { phrase, typed } = useTypewriter();
+export function ResurrectionCeremony({ council = false }: { council?: boolean }) {
+  const { phrase, typed } = useTypewriter(council ? COUNCIL_PHRASES : PHRASES);
   const id = useId().replace(/:/g, "");
 
   return (

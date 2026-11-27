@@ -33,6 +33,10 @@ const config: Config = {
           from: { width: "0%" },
           to: { width: "90%" },
         },
+        speak: {
+          "0%": { boxShadow: "0 0 0 0 rgba(255, 107, 26, 0.6)" },
+          "100%": { boxShadow: "0 0 0 14px rgba(255, 107, 26, 0)" },
+        },
         "rise-in": {
           from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -50,6 +54,7 @@ const config: Config = {
         "spin-slow": "spin 3s linear infinite",
         "modal-in": "modal-in 250ms ease-out both",
         "rise-in": "rise-in 300ms ease-out both",
+        speak: "speak 1.1s ease-out infinite",
       },
       fontFamily: {
         sans: [

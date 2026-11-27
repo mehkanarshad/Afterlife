@@ -26,6 +26,12 @@ function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
+function isCouncilVerdict(v: unknown): boolean {
+  if (typeof v !== "object" || v === null) return false;
+  const c = v as Record<string, unknown>;
+  return typeof c.year === "number" && typeof c.agreed === "number" && typeof c.total === "number";
+}
+
 function isVerdict(v: unknown): boolean {
   if (typeof v !== "object" || v === null) return false;
   const p = v as Record<string, unknown>;
@@ -51,6 +57,7 @@ function isRecord(v: unknown): v is ResurrectionRecord {
     typeof result.snapshotUrl === "string" &&
     typeof result.snapshotTimestamp === "string" &&
     (result.postMortem === undefined || isVerdict(result.postMortem)) &&
+    (result.council === undefined || isCouncilVerdict(result.council)) &&
     typeof extracted === "object" &&
     extracted !== null &&
     typeof extracted.title === "string" &&

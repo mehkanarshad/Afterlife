@@ -93,7 +93,7 @@ Acceptance criteria:
 6. **Resurrection ceremony.** While a request is in flight, the Resurrected panel shows three shimmering placeholder lines above a short ceremony, built from CSS keyframes plus a small typewriter hook (`app/ceremony.tsx`):
    - 0–400ms: a glowing orange crack draws down a tombstone. 400–650ms: the two halves split apart.
    - 550–1350ms: a ghost rises out of the crack until it clears the stone, then floats gently in place.
-   - Status text types out on a schedule: "Scanning archive…" at 0ms, "47 snapshots found…" at 650ms, "Rebuilding…" at 1300ms. Screen readers get each whole phrase, not each typed character.
+   - Status text types out on a schedule: "Scanning archive…" at 0ms, "Snapshots located…" at 650ms, "Rebuilding…" at 1300ms. Screen readers get each whole phrase, not each typed character.
    - The result is held until 2000ms even if the response is faster. It then reveals in groups 200ms apart: title, headings, paragraphs, images. A fast response is fully shown at about 2.9s. A slower response keeps the ceremony's idle state until it arrives. Errors skip the ceremony and show at once.
    - Under reduced motion, the ceremony shows its final state without movement and does not delay the result.
 
@@ -152,6 +152,24 @@ Acceptance criteria:
    - A failed lookup shows a message with "Try again".
 6. **Older log records** without `postMortem` show "Not recorded for this resurrection". A malformed `postMortem` in storage causes the record to be dropped.
 
+### 9. Council Mode
+
+**User story:** As a visitor, I want to watch several analysts compare a site's snapshots and agree on the best one, so the choice of snapshot is visible and justified.
+
+Acceptance criteria:
+
+1. **Toggle.** A "Council Mode" switch (`role="switch"`) appears in the confirm modal and the "Bury a new site" modal. It is off by default, is remembered across modals during the visit, and is disabled while a request runs. Picking a year in the post-mortem timeline always resurrects exactly that year, with no council.
+2. **Endpoint.** `POST /api/council { url }` lists the site's snapshot years from the CDX API (15-second timeout), takes up to three of them (the earliest, a middle one and the latest), and fetches and extracts all three in parallel. It returns `{ result, council: { lines, verdict, votes } }`, where `result` is the winning snapshot's normal resurrection result plus `council: { year, agreed, total }`.
+3. **Voting.** Four analysts each vote for one real snapshot by one rule, judging only non-thin pages (or all of them if every capture is thin). Ties between years are broken by readable-content score, then by the earlier year:
+   - Archaeologist: the largest HTML capture (most intact).
+   - Designer: the oldest page (most period character).
+   - Engineer: the most readable text to rebuild.
+   - Tester: the most fragments to verify (headings, paragraphs and images).
+4. **Debate.** Each analyst's line states facts computed from the snapshots: the years, the count of `<table>` and `<font>` tags, characters of text, fragments and each stub's inferred death cause. An analyst whose vote lost says so before the verdict. The last line is "Council agrees: <year>." when all four agree, or "Council settles on <year>, N of 4." otherwise. The lines live in `lib/council.ts` and are not scripted per site.
+5. **Playback.** After the ceremony, the debate plays one line at a time (400ms to the first, then 1.5s apart), and the speaker's avatar pulses. The result follows 1.2s after the last line. "Skip debate" jumps to the result at any time. Under reduced motion, every line shows at once with no pulse, and the result waits for a "Continue" click.
+6. **Verdict badge.** The result shows "Council verdict: N/4 agents agreed on <year>.", where N is the real vote count. The verdict is saved in the log, so the badge also appears in the log modal and on share pages.
+7. **Fallback.** If the archive can't list snapshots in time, the route resurrects the latest snapshot as usual and returns `council: null`. The UI then shows "The archive was too slow to list snapshots, so the council sat this one out." and no debate or badge. If some of the three snapshots can't be retrieved, the Archaeologist names them and the council judges the rest.
+
 ## Constraints
 
 - Next.js 14 App Router, TypeScript strict mode, Tailwind CSS.
@@ -168,8 +186,9 @@ Acceptance criteria:
 - When the Wayback availability API times out, it returns HTTP 200 with an `error` field. `getSnapshot` treats that as no snapshot, so the API returns 404, and the UI shows "No archive exists" when a retry would work.
 - The UI empty state uses its own all-fields-empty check. It does not read the API's `status` field.
 - Death years in `lib/sites.ts` are approximate, and some domains (e.g. `askjeeves.com`, `aim.com`) now redirect elsewhere, so their snapshots may show a successor site.
-- The ceremony's "47 snapshots found…" is fixed copy. The API only looks up the closest snapshot and does not count them.
 - Share links only work in the browser that created them, because the log is in that browser's `localStorage` and there is no database. Anyone else who opens one sees "This grave is empty". Clearing the log also breaks them.
 - Death cause is a heuristic over a single capture. It can't see DNS or registrar history, so "Domain expired" is only detected from parking-page text, and many dead sites come back "Undetermined" because their last capture still looks alive.
+- Council Mode needs the CDX list plus three snapshot fetches, so it often takes 15 seconds or more, and it falls back to a plain resurrection whenever the CDX list times out. In testing, that was two of three live attempts.
+- The council's "agents" are four deterministic rules voiced as characters, not separate AI models. The UI says each analyst "scores the real snapshots by its own rule".
 - The CDX lookup can take 10+ seconds when Wayback is busy, and it lists only HTTP-200 captures, so years where every capture was an error or redirect don't appear.
 - Wayback snapshot fetches can take over 30 seconds. The route's 10-second timeout then returns 504 for every site until the archive speeds up.
